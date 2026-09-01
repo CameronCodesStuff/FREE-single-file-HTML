@@ -1,0 +1,744 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cave Explorer</title>
+<style>
+    * { box-sizing: border-box; }
+
+    body {
+        margin: 0;
+        background: #050507;
+        color: #eee;
+        font-family: system-ui, sans-serif;
+        overflow: hidden;
+    }
+
+    canvas {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+        image-rendering: pixelated;
+        background: #08090c;
+    }
+
+    #hud {
+        position: fixed;
+        top: 15px;
+        left: 15px;
+        right: 15px;
+        display: flex;
+        justify-content: space-between;
+        pointer-events: none;
+        font-weight: bold;
+        text-shadow: 0 2px 5px #000;
+    }
+
+    .panel {
+        background: rgba(0,0,0,.65);
+        border: 1px solid #555;
+        border-radius: 10px;
+        padding: 10px 14px;
+        backdrop-filter: blur(5px);
+    }
+
+    #message {
+        position: fixed;
+        bottom: 25px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0,0,0,.8);
+        border: 1px solid #777;
+        padding: 12px 20px;
+        border-radius: 10px;
+        text-align: center;
+        opacity: 0;
+        transition: opacity .3s;
+        pointer-events: none;
+    }
+
+    #start {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(circle, #20252c, #030305 70%);
+    }
+
+    .card {
+        width: min(500px, 90vw);
+        text-align: center;
+        padding: 35px;
+        background: rgba(12,13,17,.95);
+        border: 1px solid #555;
+        border-radius: 18px;
+        box-shadow: 0 20px 70px #000;
+    }
+
+    h1 {
+        font-size: 42px;
+        margin: 0 0 8px;
+        color: #9ee7ff;
+    }
+
+    button {
+        margin-top: 20px;
+        padding: 13px 30px;
+        border: 0;
+        border-radius: 9px;
+        background: #6dd5ed;
+        color: #061014;
+        font-size: 17px;
+        font-weight: 800;
+        cursor: pointer;
+    }
+
+    button:hover { background: #9cecff; }
+
+    .hidden { display: none !important; }
+
+    #touch {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        display: none;
+        gap: 5px;
+    }
+
+    .touchBtn {
+        width: 48px;
+        height: 48px;
+        background: rgba(255,255,255,.12);
+        border: 1px solid #666;
+        color: white;
+        border-radius: 9px;
+        font-size: 20px;
+    }
+
+    @media (pointer: coarse) {
+        #touch { display: grid; grid-template-columns: repeat(3,48px); }
+        #touch button:nth-child(1) { grid-column: 2; }
+        #touch button:nth-child(2) { grid-column: 1; }
+        #touch button:nth-child(3) { grid-column: 2; }
+        #touch button:nth-child(4) { grid-column: 3; }
+    }
+</style>
+</head>
+<body>
+
+<canvas id="game"></canvas>
+
+<div id="hud" class="hidden">
+    <div class="panel">
+        💎 Crystals: <span id="crystals">0</span>/8
+    </div>
+    <div class="panel">
+        🔥 Torch: <span id="torch">100</span>%
+    </div>
+</div>
+
+<div id="message"></div>
+
+<div id="touch">
+    <button class="touchBtn" data-key="ArrowUp">▲</button>
+    <button class="touchBtn" data-key="ArrowLeft">◀</button>
+    <button class="touchBtn" data-key="ArrowDown">▼</button>
+    <button class="touchBtn" data-key="ArrowRight">▶</button>
+</div>
+
+<div id="start">
+    <div class="card">
+        <h1>🕯️ CAVEBOUND</h1>
+        <p>Wagwan, explorer.</p>
+        <p>
+            Venture into the cave, collect <b>8 crystals</b>,
+            avoid the bats, and find the golden exit.
+        </p>
+        <p>
+            <b>WASD / Arrow Keys</b> to move<br>
+            Stay sharp — your torch is running out.
+        </p>
+        <button id="startBtn">ENTER THE CAVE</button>
+    </div>
+</div>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+let W, H;
+function resize() {
+    W = canvas.width = innerWidth;
+    H = canvas.height = innerHeight;
+}
+addEventListener("resize", resize);
+resize();
+
+const TILE = 42;
+const MAP_W = 70;
+const MAP_H = 45;
+
+let map;
+let player;
+let crystals;
+let bats;
+let exit;
+let torch;
+let score;
+let gameRunning = false;
+let keys = {};
+let lastTime = 0;
+let particles = [];
+
+document.addEventListener("keydown", e => {
+    keys[e.key.toLowerCase()] = true;
+    keys[e.key] = true;
+
+    if (["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"," "].includes(e.key))
+        e.preventDefault();
+
+    if (!gameRunning && e.key === "Enter") startGame();
+});
+
+document.addEventListener("keyup", e => {
+    keys[e.key.toLowerCase()] = false;
+    keys[e.key] = false;
+});
+
+document.querySelectorAll(".touchBtn").forEach(btn => {
+    const key = btn.dataset.key;
+
+    btn.addEventListener("pointerdown", e => {
+        e.preventDefault();
+        keys[key] = true;
+    });
+
+    btn.addEventListener("pointerup", () => keys[key] = false);
+    btn.addEventListener("pointerleave", () => keys[key] = false);
+});
+
+document.getElementById("startBtn").onclick = startGame;
+
+function generateCave() {
+    map = Array.from({length: MAP_H}, () =>
+        Array(MAP_W).fill(1)
+    );
+
+    // Random walk cave carving
+    let x = Math.floor(MAP_W / 2);
+    let y = Math.floor(MAP_H / 2);
+
+    for (let i = 0; i < 9000; i++) {
+        map[y][x] = 0;
+
+        if (Math.random() < .35) {
+            map[y][Math.max(1, x-1)] = 0;
+            map[y][Math.min(MAP_W-2, x+1)] = 0;
+        }
+
+        const dir = Math.floor(Math.random()*4);
+
+        if (dir === 0) x++;
+        if (dir === 1) x--;
+        if (dir === 2) y++;
+        if (dir === 3) y--;
+
+        x = Math.max(2, Math.min(MAP_W-3, x));
+        y = Math.max(2, Math.min(MAP_H-3, y));
+    }
+
+    // Make wider rooms
+    for (let i = 0; i < 80; i++) {
+        let rx = 3 + Math.floor(Math.random()*(MAP_W-6));
+        let ry = 3 + Math.floor(Math.random()*(MAP_H-6));
+
+        for (let yy=-2; yy<=2; yy++)
+            for (let xx=-2; xx<=2; xx++)
+                if (xx*xx + yy*yy < 7)
+                    map[ry+yy][rx+xx] = 0;
+    }
+}
+
+function isFloor(x,y) {
+    x = Math.floor(x);
+    y = Math.floor(y);
+
+    return (
+        x >= 0 && x < MAP_W &&
+        y >= 0 && y < MAP_H &&
+        map[y][x] === 0
+    );
+}
+
+function randomFloor(minDist = 0) {
+    for (let i=0;i<10000;i++) {
+        const x = 2 + Math.random()*(MAP_W-4);
+        const y = 2 + Math.random()*(MAP_H-4);
+
+        if (isFloor(x,y) &&
+            Math.hypot(x-player.x,y-player.y) >= minDist)
+            return {x,y};
+    }
+
+    return {x:5,y:5};
+}
+
+function startGame() {
+    generateCave();
+
+    // Find starting floor
+    let start = null;
+
+    for (let y=0;y<MAP_H && !start;y++) {
+        for (let x=0;x<MAP_W;x++) {
+            if (map[y][x] === 0) {
+                start = {x:x+.5,y:y+.5};
+                break;
+            }
+        }
+    }
+
+    player = {
+        x:start.x,
+        y:start.y,
+        r:.28,
+        speed:3.2
+    };
+
+    crystals = [];
+    bats = [];
+    particles = [];
+    torch = 100;
+    score = 0;
+
+    for (let i=0;i<8;i++) {
+        const p = randomFloor(8);
+        crystals.push({
+            x:p.x+.5,
+            y:p.y+.5,
+            collected:false,
+            phase:Math.random()*10
+        });
+    }
+
+    for (let i=0;i<7;i++) {
+        const p = randomFloor(10);
+        bats.push({
+            x:p.x+.5,
+            y:p.y+.5,
+            vx:(Math.random()-.5)*1.5,
+            vy:(Math.random()-.5)*1.5,
+            phase:Math.random()*10
+        });
+    }
+
+    let ep = randomFloor(20);
+    exit = {x:ep.x+.5,y:ep.y+.5};
+
+    gameRunning = true;
+    document.getElementById("start").classList.add("hidden");
+    document.getElementById("hud").classList.remove("hidden");
+
+    showMessage("Find all 8 crystals, then reach the golden exit.");
+    requestAnimationFrame(loop);
+}
+
+function showMessage(text) {
+    const el = document.getElementById("message");
+    el.textContent = text;
+    el.style.opacity = 1;
+
+    clearTimeout(showMessage.timer);
+    showMessage.timer = setTimeout(() => {
+        el.style.opacity = 0;
+    }, 2500);
+}
+
+function movePlayer(dt) {
+    let dx = 0, dy = 0;
+
+    if (keys.w || keys.ArrowUp) dy--;
+    if (keys.s || keys.ArrowDown) dy++;
+    if (keys.a || keys.ArrowLeft) dx--;
+    if (keys.d || keys.ArrowRight) dx++;
+
+    if (!dx && !dy) return;
+
+    const len = Math.hypot(dx,dy);
+    dx /= len;
+    dy /= len;
+
+    const speed = player.speed * dt;
+
+    let nx = player.x + dx * speed;
+    let ny = player.y + dy * speed;
+
+    if (isFloor(nx-player.r, player.y) &&
+        isFloor(nx+player.r, player.y))
+        player.x = nx;
+
+    if (isFloor(player.x, ny-player.r) &&
+        isFloor(player.x, ny+player.r))
+        player.y = ny;
+}
+
+function update(dt) {
+    movePlayer(dt);
+
+    // Torch slowly burns
+    torch -= dt * .9;
+
+    if (torch <= 0) {
+        torch = 0;
+        loseGame("Your torch went out. The cave swallowed you.");
+        return;
+    }
+
+    // Collect crystals
+    for (const c of crystals) {
+        if (!c.collected &&
+            Math.hypot(player.x-c.x,player.y-c.y) < .65) {
+
+            c.collected = true;
+            score++;
+
+            burst(c.x,c.y, "#7eeaff");
+
+            showMessage("Crystal collected! 💎");
+
+            if (score === 8)
+                showMessage("All crystals found. Find the golden exit!");
+        }
+    }
+
+    // Bats
+    for (const b of bats) {
+        const dx = player.x-b.x;
+        const dy = player.y-b.y;
+        const d = Math.hypot(dx,dy);
+
+        if (d < 8) {
+            b.vx += dx/d * dt * 1.8;
+            b.vy += dy/d * dt * 1.8;
+        }
+
+        b.vx *= .995;
+        b.vy *= .995;
+
+        const max = 2.2;
+        const sp = Math.hypot(b.vx,b.vy);
+
+        if (sp > max) {
+            b.vx = b.vx/sp*max;
+            b.vy = b.vy/sp*max;
+        }
+
+        const nx = b.x+b.vx*dt;
+        const ny = b.y+b.vy*dt;
+
+        if (isFloor(nx,ny)) {
+            b.x=nx;
+            b.y=ny;
+        } else {
+            b.vx *= -1;
+            b.vy *= -1;
+        }
+
+        if (d < .65) {
+            torch -= 18;
+            b.vx *= -2;
+            b.vy *= -2;
+            showMessage("🦇 A bat smacked you! Torch damaged.");
+        }
+    }
+
+    // Exit
+    if (score === 8 &&
+        Math.hypot(player.x-exit.x,player.y-exit.y) < .8) {
+        winGame();
+    }
+
+    updateParticles(dt);
+}
+
+function burst(x,y,color) {
+    for (let i=0;i<25;i++) {
+        particles.push({
+            x:x*TILE,
+            y:y*TILE,
+            vx:(Math.random()-.5)*150,
+            vy:(Math.random()-.5)*150,
+            life:1,
+            color
+        });
+    }
+}
+
+function updateParticles(dt) {
+    for (const p of particles) {
+        p.x += p.vx*dt;
+        p.y += p.vy*dt;
+        p.life -= dt*1.7;
+    }
+
+    particles = particles.filter(p=>p.life>0);
+}
+
+function winGame() {
+    gameRunning = false;
+
+    setTimeout(() => {
+        alert(
+            "🏆 YOU ESCAPED!\n\n" +
+            "Crystals collected: " + score +
+            "\nTorch remaining: " + Math.round(torch) + "%"
+        );
+
+        document.getElementById("start").classList.remove("hidden");
+        document.querySelector("#start h1").textContent = "🏆 CAVE MASTER";
+        document.querySelector("#start p").innerHTML =
+            "You actually made it out. Mad ting.<br>" +
+            "Press Enter or click below to explore again.";
+
+        document.getElementById("startBtn").textContent =
+            "EXPLORE AGAIN";
+    },100);
+}
+
+function loseGame(reason) {
+    gameRunning = false;
+
+    setTimeout(() => {
+        alert("💀 GAME OVER\n\n"+reason);
+
+        document.getElementById("start").classList.remove("hidden");
+        document.querySelector("#start h1").textContent = "🕯️ CAVEBOUND";
+        document.getElementById("startBtn").textContent =
+            "TRY AGAIN";
+    },100);
+}
+
+function camera() {
+    return {
+        x:player.x*TILE-W/2,
+        y:player.y*TILE-H/2
+    };
+}
+
+function draw() {
+    ctx.clearRect(0,0,W,H);
+
+    const cam = camera();
+
+    ctx.save();
+    ctx.translate(-cam.x,-cam.y);
+
+    // Cave
+    for (let y=0;y<MAP_H;y++) {
+        for (let x=0;x<MAP_W;x++) {
+            const px=x*TILE;
+            const py=y*TILE;
+
+            if (map[y][x] === 1) {
+                ctx.fillStyle="#15171b";
+                ctx.fillRect(px,py,TILE,TILE);
+
+                // rock texture
+                ctx.fillStyle="#202329";
+                ctx.fillRect(px+4,py+6,TILE-8,3);
+
+                ctx.fillStyle="#0d0e11";
+                ctx.fillRect(px+7,py+TILE-8,TILE-14,3);
+            } else {
+                ctx.fillStyle="#29252a";
+                ctx.fillRect(px,py,TILE,TILE);
+
+                ctx.fillStyle="#312d32";
+                ctx.fillRect(px+2,py+2,TILE-4,TILE-4);
+            }
+        }
+    }
+
+    // Exit
+    const ex=exit.x*TILE;
+    const ey=exit.y*TILE;
+
+    ctx.save();
+    ctx.translate(ex,ey);
+    ctx.shadowBlur=25;
+    ctx.shadowColor="#ffd75e";
+    ctx.fillStyle="#ffd75e";
+    ctx.beginPath();
+    ctx.arc(0,0,13,0,Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+
+    // Crystals
+    for (const c of crystals) {
+        if (c.collected) continue;
+
+        const bob=Math.sin(performance.now()/300+c.phase)*3;
+        const x=c.x*TILE;
+        const y=c.y*TILE+bob;
+
+        ctx.save();
+        ctx.translate(x,y);
+        ctx.shadowBlur=20;
+        ctx.shadowColor="#64eaff";
+        ctx.fillStyle="#72eaff";
+
+        ctx.beginPath();
+        ctx.moveTo(0,-14);
+        ctx.lineTo(10,0);
+        ctx.lineTo(0,16);
+        ctx.lineTo(-10,0);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle="#d9fbff";
+        ctx.beginPath();
+        ctx.moveTo(0,-11);
+        ctx.lineTo(4,0);
+        ctx.lineTo(0,5);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.restore();
+    }
+
+    // Bats
+    for (const b of bats) {
+        const x=b.x*TILE;
+        const y=b.y*TILE;
+
+        ctx.save();
+        ctx.translate(x,y);
+
+        ctx.fillStyle="#09090d";
+
+        ctx.beginPath();
+        ctx.ellipse(0,0,9,7,0,0,Math.PI*2);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(-5,0);
+        ctx.lineTo(-22,-10);
+        ctx.lineTo(-13,4);
+        ctx.lineTo(-20,10);
+        ctx.lineTo(-3,7);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.moveTo(5,0);
+        ctx.lineTo(22,-10);
+        ctx.lineTo(13,4);
+        ctx.lineTo(20,10);
+        ctx.lineTo(3,7);
+        ctx.fill();
+
+        ctx.fillStyle="#ff4545";
+        ctx.fillRect(-4,-2,2,2);
+        ctx.fillRect(2,-2,2,2);
+
+        ctx.restore();
+    }
+
+    // Player
+    const px=player.x*TILE;
+    const py=player.y*TILE;
+
+    ctx.save();
+    ctx.translate(px,py);
+
+    ctx.fillStyle="#e8b07a";
+    ctx.beginPath();
+    ctx.arc(0,-9,7,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle="#4a6dff";
+    ctx.fillRect(-8,-3,16,17);
+
+    ctx.fillStyle="#30343a";
+    ctx.fillRect(-9,14,7,7);
+    ctx.fillRect(2,14,7,7);
+
+    ctx.fillStyle="#fff3b0";
+    ctx.fillRect(5,-5,6,7);
+
+    ctx.restore();
+
+    // Particles
+    for (const p of particles) {
+        ctx.globalAlpha=p.life;
+        ctx.fillStyle=p.color;
+        ctx.beginPath();
+        ctx.arc(p.x,p.y,3,0,Math.PI*2);
+        ctx.fill();
+    }
+
+    ctx.restore();
+
+    // Darkness / torch lighting
+    const pxScreen = W/2;
+    const pyScreen = H/2;
+
+    const radius = 105 + torch * 1.25;
+
+    const gradient = ctx.createRadialGradient(
+        pxScreen,pyScreen,25,
+        pxScreen,pyScreen,radius
+    );
+
+    gradient.addColorStop(0,"rgba(0,0,0,0)");
+    gradient.addColorStop(.55,"rgba(0,0,0,.25)");
+    gradient.addColorStop(.78,"rgba(0,0,0,.75)");
+    gradient.addColorStop(1,"rgba(0,0,0,.98)");
+
+    ctx.fillStyle=gradient;
+    ctx.fillRect(0,0,W,H);
+
+    // Torch flicker
+    const flicker =
+        Math.sin(performance.now()/80)*4 +
+        Math.sin(performance.now()/37)*2;
+
+    ctx.globalCompositeOperation="screen";
+
+    const light=ctx.createRadialGradient(
+        pxScreen,pyScreen,5,
+        pxScreen,pyScreen,radius+flicker
+    );
+
+    light.addColorStop(0,"rgba(255,190,80,.09)");
+    light.addColorStop(.4,"rgba(255,150,50,.035)");
+    light.addColorStop(1,"rgba(0,0,0,0)");
+
+    ctx.fillStyle=light;
+    ctx.fillRect(0,0,W,H);
+
+    ctx.globalCompositeOperation="source-over";
+}
+
+function loop(time) {
+    if (!gameRunning) return;
+
+    const dt=Math.min((time-lastTime)/1000,.05);
+    lastTime=time;
+
+    update(dt);
+    draw();
+
+    document.getElementById("crystals").textContent=score;
+    document.getElementById("torch").textContent=Math.max(
+        0,Math.round(torch)
+    );
+
+    requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>
+```
