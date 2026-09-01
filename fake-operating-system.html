@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FakeOS</title>
+<style>
+*{box-sizing:border-box}
+body{
+    margin:0;
+    height:100vh;
+    overflow:hidden;
+    font-family:Arial,sans-serif;
+    background:linear-gradient(135deg,#17233b,#754574);
+}
+.desktop{
+    height:calc(100vh - 44px);
+    padding:20px;
+    position:relative;
+}
+.icon{
+    width:90px;
+    margin:8px;
+    text-align:center;
+    color:white;
+    cursor:pointer;
+    user-select:none;
+}
+.icon div{font-size:42px;margin-bottom:5px}
+.window{
+    position:absolute;
+    top:12%;
+    left:18%;
+    width:62%;
+    height:55%;
+    background:#eee;
+    border:2px solid #222;
+    box-shadow:10px 12px 0 #0007;
+    display:none;
+    min-width:300px;
+}
+.titlebar{
+    height:38px;
+    background:#222;
+    color:white;
+    padding:10px;
+    display:flex;
+    justify-content:space-between;
+}
+.titlebar b{cursor:pointer}
+.content{padding:20px}
+textarea{
+    width:100%;
+    height:250px;
+    resize:none;
+}
+.taskbar{
+    position:fixed;
+    bottom:0;
+    left:0;
+    right:0;
+    height:44px;
+    background:#171717;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:5px 12px;
+    color:white;
+}
+.start{
+    background:#5b76ff;
+    color:white;
+    border:0;
+    padding:9px 15px;
+    cursor:pointer;
+}
+</style>
+</head>
+<body>
+
+<div class="desktop">
+
+    <div class="icon" onclick="openWindow('computer')">
+        <div>🖥️</div>
+        My Computer
+    </div>
+
+    <div class="icon" onclick="openWindow('notes')">
+        <div>📝</div>
+        Notes
+    </div>
+
+    <div class="icon" onclick="openWindow('browser')">
+        <div>🌐</div>
+        Internet
+    </div>
+
+    <div class="window" id="computer">
+        <div class="titlebar">
+            My Computer
+            <b onclick="closeWindow('computer')">×</b>
+        </div>
+        <div class="content">
+            <h2>System Information</h2>
+            <p>CPU: Probably working</p>
+            <p>RAM: Enough-ish</p>
+            <p>Storage: 73% random screenshots</p>
+            <p>Vibes: Immaculate</p>
+        </div>
+    </div>
+
+    <div class="window" id="notes">
+        <div class="titlebar">
+            Notes
+            <b onclick="closeWindow('notes')">×</b>
+        </div>
+        <div class="content">
+            <textarea placeholder="Write something important..."></textarea>
+        </div>
+    </div>
+
+    <div class="window" id="browser">
+        <div class="titlebar">
+            Internet Explorer-ish
+            <b onclick="closeWindow('browser')">×</b>
+        </div>
+        <div class="content">
+            <h2>Welcome to the Internet</h2>
+            <p>You've reached the entire internet.</p>
+            <button onclick="alert('Connection failed. Skill issue.')">
+                Browse
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<div class="taskbar">
+    <button class="start" onclick="alert('Start menu contains absolutely nothing useful.')">
+        ☰ Start
+    </button>
+    <span id="clock"></span>
+</div>
+
+<script>
+function openWindow(id){
+    document.getElementById(id).style.display="block";
+}
+
+function closeWindow(id){
+    document.getElementById(id).style.display="none";
+}
+
+setInterval(()=>{
+    document.getElementById("clock").textContent =
+        new Date().toLocaleTimeString();
+},1000);
+</script>
+
+</body>
+</html>
