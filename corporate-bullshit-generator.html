@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Corporate Bullshit Generator™</title>
+
+<style>
+body{
+    margin:0;
+    background:#eef2f5;
+    font-family:Arial;
+    color:#17212b;
+}
+.wrap{
+    max-width:750px;
+    margin:70px auto;
+    padding:25px;
+}
+.card{
+    background:white;
+    padding:35px;
+    border-radius:18px;
+    box-shadow:0 12px 35px #0001;
+}
+textarea{
+    width:100%;
+    height:140px;
+    padding:15px;
+    font:inherit;
+    resize:vertical;
+}
+button{
+    margin-top:15px;
+    padding:14px 20px;
+    border:0;
+    background:#0a66c2;
+    color:white;
+    border-radius:8px;
+    cursor:pointer;
+}
+.output{
+    margin-top:25px;
+    background:#f5f7f9;
+    padding:20px;
+    border-left:4px solid #0a66c2;
+    line-height:1.7;
+}
+</style>
+</head>
+
+<body>
+
+<div class="wrap">
+
+<div class="card">
+
+<h1>Corporate Bullshit™</h1>
+
+<p>
+Turn normal human language into executive waffle.
+</p>
+
+<textarea id="input"
+placeholder="e.g. We need to finish the project."></textarea>
+
+<br>
+
+<button onclick="generate()">
+Synergise It
+</button>
+
+<button onclick="generateRandom()">
+Random Bullshit
+</button>
+
+<div class="output" id="output">
+Your meaningless masterpiece will appear here.
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+const verbs=[
+    "leverage",
+    "synergise",
+    "circle back",
+    "deep-dive",
+    "unlock",
+    "streamline",
+    "operationalise",
+    "move the needle",
+    "maximise",
+    "strategically align"
+];
+
+const nouns=[
+    "stakeholder value",
+    "cross-functional alignment",
+    "scalable outcomes",
+    "strategic visibility",
+    "business velocity",
+    "core deliverables"
+];
+
+function randomItem(array){
+    return array[Math.floor(Math.random()*array.length)];
+}
+
+function generate(){
+
+    const input=
+        document.getElementById("input").value.trim()
+        || "We need to finish the project.";
+
+    const sentence=`
+
+    We need to strategically ${randomItem(verbs)}
+    our existing capabilities in order to ${randomItem(verbs)}
+    the core objective.
+
+    By leveraging ${randomItem(nouns)},
+    we can ensure that ${input.toLowerCase()}
+
+    This will create meaningful stakeholder value,
+    reduce unnecessary friction and position us
+    for scalable outcomes.
+
+    `;
+
+    document.getElementById("output").textContent=sentence;
+}
+
+function generateRandom(){
+
+    document.getElementById("input").value=
+        "We should probably do the thing.";
+
+    generate();
+}
+
+</script>
+
+</body>
+</html>
