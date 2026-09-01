@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Roadside Farm</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,sans-serif;background:#8fd3ff;color:#24351f;min-height:100vh}
+.wrap{max-width:1100px;margin:auto;padding:18px}.top{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+h1{margin:0;font-size:30px}.stats{display:flex;gap:8px;flex-wrap:wrap}.pill{background:#fff8d9;border:2px solid #e2c76b;border-radius:999px;padding:7px 12px;font-weight:800}
+.card{background:#fffaf0;border:3px solid #5c8f48;border-radius:18px;box-shadow:0 7px 0 #47743a;margin-top:14px;padding:15px}
+.layout{display:grid;grid-template-columns:1fr 310px;gap:14px}.farm{display:grid;grid-template-columns:repeat(6,1fr);gap:9px}
+.plot{aspect-ratio:1;background:#9b673e;border:3px solid #75472b;border-radius:13px;display:flex;align-items:center;justify-content:center;font-size:35px;cursor:pointer;position:relative;user-select:none;transition:.12s}
+.plot:hover{transform:translateY(-2px)}.plot.empty{background:#b87947}.plot.wet{box-shadow:inset 0 0 0 4px #54a9df}
+.plot small{position:absolute;bottom:4px;right:6px;background:#fff8;border-radius:8px;padding:1px 4px;font-size:11px}
+button{border:0;border-radius:10px;padding:10px 12px;font-weight:800;cursor:pointer;background:#5c9e4c;color:white;box-shadow:0 3px 0 #3f7135}
+button:active{transform:translateY(2px);box-shadow:none}button.alt{background:#dba83e;color:#33250e}button.red{background:#cf5a4e}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.shoprow{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #ddd2bb;padding:10px 0;gap:8px}
+.shoprow:last-child{border:0}.emoji{font-size:27px}.muted{color:#68715f;font-size:13px}.log{height:150px;overflow:auto;background:#202a20;color:#e7f4d8;border-radius:12px;padding:10px;font:13px ui-monospace,monospace}
+.log div{margin-bottom:5px}.weather{font-weight:800}.tip{font-size:14px;line-height:1.4}
+@media(max-width:800px){.layout{grid-template-columns:1fr}.farm{grid-template-columns:repeat(4,1fr)}}@media(max-width:480px){.farm{grid-template-columns:repeat(3,1fr)}h1{font-size:24px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <h1>🌱 Roadside Farm</h1>
+    <div class="stats">
+      <div class="pill">🪙 <span id="coins">30</span></div>
+      <div class="pill">⭐ Lv <span id="level">1</span></div>
+      <div class="pill">📅 Day <span id="day">1</span></div>
+      <div class="pill weather" id="weather">☀️ Sunny</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="tip"><b>How to play:</b> Pick a seed, click an empty plot to plant, then water it. Advance the day to grow crops. Harvest ripe crops for coins. Random events keep man's farm life spicy, innit.</div>
+    <div class="actions">
+      <button onclick="nextDay()">🌅 Sleep / Next Day</button>
+      <button class="alt" onclick="buyWater()">💧 Buy Water (+3) — 4🪙</button>
+      <button class="red" onclick="resetGame()">🗑️ New Farm</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <main class="card">
+      <h2 style="margin-top:0">Your Fields</h2>
+      <div class="muted">Water: <b id="water">8</b> 💧 · XP: <b id="xp">0</b>/<span id="nextxp">50</span></div>
+      <div class="farm" id="farm"></div>
+      <h2>📜 Farm Log</h2>
+      <div class="log" id="log"></div>
+    </main>
+
+    <aside class="card">
+      <h2 style="margin-top:0">🧺 Seed Stall</h2>
+      <div id="shop"></div>
+      <h3>🌾 Selected</h3>
+      <div id="selected" class="tip"></div>
+      <h3>📈 Upgrades</h3>
+      <div class="shoprow"><span>🚿 Bigger Tank<br><span class="muted">+5 max water</span></span><button onclick="upgradeWater()">25🪙</button></div>
+      <div class="shoprow"><span>🧤 Green Thumb<br><span class="muted">Crops sell for +15%</span></span><button onclick="upgradeSell()">60🪙</button></div>
+    </aside>
+  </div>
+</div>
+
+<script>
+const crops={
+ carrot:{name:"Carrot",emoji:"🥕",cost:4,sell:10,grow:2,xp:8},
+ wheat:{name:"Wheat",emoji:"🌾",cost:3,sell:7,grow:1,xp:6},
+ corn:{name:"Corn",emoji:"🌽",cost:7,sell:18,grow:3,xp:14},
+ tomato:{name:"Tomato",emoji:"🍅",cost:9,sell:25,grow:3,xp:18},
+ pumpkin:{name:"Pumpkin",emoji:"🎃",cost:14,sell:42,grow:4,xp:28}
+};
+let state=JSON.parse(localStorage.getItem("roadsideFarm")||"null")||{
+ coins:30,day:1,water:8,maxWater:8,level:1,xp:0,selected:"carrot",sellUp:false,
+ plots:Array(24).fill(null), weather:"sunny"
+};
+let weatherInfo={
+ sunny:["☀️","Sunny"],rain:["🌧️","Rainy"],drought:["🥵","Dry"],storm:["⛈️","Stormy"]
+};
+function save(){localStorage.setItem("roadsideFarm",JSON.stringify(state))}
+function log(t){let el=document.getElementById("log");el.innerHTML="<div>Day "+state.day+": "+t+"</div>"+el.innerHTML}
+function xpNeed(){return 50+(state.level-1)*35}
+function render(){
+ document.getElementById("coins").textContent=state.coins;
+ document.getElementById("day").textContent=state.day;
+ document.getElementById("level").textContent=state.level;
+ document.getElementById("water").textContent=state.water+"/"+state.maxWater;
+ document.getElementById("xp").textContent=state.xp;
+ document.getElementById("nextxp").textContent=xpNeed();
+ let wi=weatherInfo[state.weather];document.getElementById("weather").textContent=wi[0]+" "+wi[1];
+ document.getElementById("selected").innerHTML=`<b>${crops[state.selected].emoji} ${crops[state.selected].name}</b> — ${crops[state.selected].cost}🪙 seed · sells for ${crops[state.selected].sell*(state.sellUp?1.15:1)|0}🪙 · grows in ${crops[state.selected].grow} day(s).`;
+ document.getElementById("farm").innerHTML=state.plots.map((p,i)=>{
+   if(!p)return `<div class="plot empty" onclick="plant(${i})">➕</div>`;
+   let c=crops[p.crop], icon=p.ready?"✨"+c.emoji:c.emoji;
+   return `<div class="plot ${p.watered?"wet":""}" onclick="plotClick(${i})">${icon}<small>${p.ready?"READY":"Day "+p.age+"/"+c.grow}${p.watered?" 💧":""}</small></div>`;
+ }).join("");
+ document.getElementById("shop").innerHTML=Object.entries(crops).map(([id,c])=>`
+ <div class="shoprow"><span><span class="emoji">${c.emoji}</span> <b>${c.name}</b><br><span class="muted">${c.cost}🪙 · ${c.grow}d · sells ${c.sell}🪙</span></span>
+ <button ${state.selected===id?'class="alt"':''} onclick="selectSeed('${id}')">${state.selected===id?"Selected":"Pick"}</button></div>`).join("");
+ save();
+}
+function selectSeed(id){state.selected=id;render()}
+function plant(i){
+ if(state.plots[i])return;
+ let c=crops[state.selected];
+ if(state.coins<c.cost){log("Not enough coins for that seed, fam.");return}
+ state.coins-=c.cost;
+ state.plots[i]={crop:state.selected,age:0,watered:false,ready:false};
+ log(`Planted ${c.emoji} ${c.name}.`);
+ render();
+}
+function plotClick(i){
+ let p=state.plots[i];if(!p)return;
+ if(p.ready){harvest(i);return}
+ if(!p.watered)waterPlot(i);else log("Already watered. Let the crop breathe, bruv.");
+}
+function waterPlot(i){
+ if(state.water<=0){log("Water tank is empty. Buy some or wait for rain.");return}
+ state.water--;state.plots[i].watered=true;log("Plot watered 💧.");render();
+}
+function harvest(i){
+ let p=state.plots[i],c=crops[p.crop],value=Math.floor(c.sell*(state.sellUp?1.15:1));
+ state.coins+=value;state.xp+=c.xp;log(`Harvested ${c.emoji} ${c.name} for ${value}🪙 and +${c.xp} XP.`);
+ state.plots[i]=null;
+ while(state.xp>=xpNeed()){state.xp-=xpNeed();state.level++;state.maxWater+=1;state.water=Math.min(state.maxWater,state.water+1);log("LEVEL UP! ⭐ Bigger tank and new farming clout.");}
+ render();
+}
+function buyWater(){
+ if(state.coins<4){log("You're skint. No water today.");return}
+ state.coins-=4;state.water=Math.min(state.maxWater,state.water+3);log("Bought 3 water 💧.");render();
+}
+function upgradeWater(){
+ if(state.maxWater>=18){log("Tank already maxed.");return}
+ if(state.coins<25){log("Need 25 coins for the tank upgrade.");return}
+ state.coins-=25;state.maxWater+=5;state.water+=5;log("Tank upgraded! More drip, less stress.");render();
+}
+function upgradeSell(){
+ if(state.sellUp){log("Green Thumb already active.");return}
+ if(state.coins<60){log("Need 60 coins for Green Thumb.");return}
+ state.coins-=60;state.sellUp=true;log("Green Thumb unlocked: crops sell for 15% more.");render();
+}
+function nextDay(){
+ state.day++;
+ let r=Math.random(),w=r<.48?"sunny":r<.72?"rain":r<.91?"drought":"storm";state.weather=w;
+ if(w==="rain"){state.water=Math.min(state.maxWater,state.water+4);log("Rain rolled in 🌧️. +4 water.");}
+ if(w==="drought")log("Heatwave! 🥵 Unwatered crops won't grow today.");
+ if(w==="storm")log("Stormy night ⛈️. There's a chance crops got a boost!");
+ state.plots.forEach(p=>{
+   if(!p||p.ready)return;
+   let grow=p.watered || w==="rain" || (w==="storm"&&Math.random()<.65);
+   if(w==="drought"&&!p.watered)grow=false;
+   if(grow){p.age++;if(p.age>=crops[p.crop].grow)p.ready=true}
+   p.watered=false;
+ });
+ if(Math.random()<.12){let bonus=5+state.level*2;state.coins+=bonus;log(`A neighbour bought your spare produce. +${bonus}🪙.`)}
+ render();
+}
+function resetGame(){
+ if(confirm("Start a fresh farm? Your current save will be deleted.")){
+ localStorage.removeItem("roadsideFarm");location.reload();
+ }
+}
+log("Welcome to the farm, boss. Let's get this bread 🌱🪙.");
+render();
+</script>
+</body>
+</html>
