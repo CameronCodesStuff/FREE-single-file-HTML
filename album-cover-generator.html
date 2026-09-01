@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Album Cover Generator</title>
+
+<style>
+body{
+    margin:0;
+    min-height:100vh;
+    background:#111;
+    color:white;
+    font-family:Arial;
+    display:grid;
+    place-items:center;
+}
+.wrap{
+    width:min(700px,90%);
+    text-align:center;
+}
+.cover{
+    width:min(420px,80vw);
+    height:min(420px,80vw);
+    margin:25px auto;
+    display:grid;
+    place-items:center;
+    position:relative;
+    box-shadow:15px 15px 0 #000;
+    overflow:hidden;
+}
+.coverTitle{
+    font-size:42px;
+    font-weight:900;
+    text-align:center;
+    padding:20px;
+    text-shadow:4px 4px 0 #0008;
+}
+.artist{
+    position:absolute;
+    bottom:18px;
+    left:18px;
+    font-weight:bold;
+    text-shadow:2px 2px #000;
+}
+.controls{
+    display:flex;
+    justify-content:center;
+    flex-wrap:wrap;
+    gap:6px;
+}
+input{
+    padding:12px;
+}
+button{
+    padding:12px;
+    cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="wrap">
+
+<h1>Album Cover Generator</h1>
+
+<div class="cover" id="cover">
+
+<div class="coverTitle" id="coverTitle">
+MIDNIGHT<br>TELEPHONE
+</div>
+
+<div class="artist" id="artist">
+DJ SOMEONE
+</div>
+
+</div>
+
+<div class="controls">
+
+<input id="titleInput" placeholder="Album title">
+
+<input id="artistInput" placeholder="Artist">
+
+<button onclick="makeCover()">
+Generate
+</button>
+
+<button onclick="randomCover()">
+Random
+</button>
+
+</div>
+
+</div>
+
+<script>
+
+const titles=[
+    "MIDNIGHT TELEPHONE",
+    "NEON REGRETS",
+    "TUESDAY FOREVER",
+    "NO SIGNAL",
+    "LAST TRAIN HOME",
+    "ABSOLUTELY NORMAL",
+    "LOST PASSWORD",
+    "WHY ARE WE HERE?"
+];
+
+const artists=[
+    "DJ SOMEONE",
+    "THE MANDEM",
+    "STATIC CLUB",
+    "UNKNOWN FM",
+    "SLEEP DEPRIVATION",
+    "GARY WOBBLE"
+];
+
+function randomItem(array){
+    return array[Math.floor(Math.random()*array.length)];
+}
+
+function makeCover(){
+
+    const title=
+        document.getElementById("titleInput").value
+        || "MIDNIGHT TELEPHONE";
+
+    const artist=
+        document.getElementById("artistInput").value
+        || "DJ SOMEONE";
+
+    document.getElementById("coverTitle").innerHTML=
+        title.toUpperCase().replace(/\s+/g,"<br>");
+
+    document.getElementById("artist").textContent=
+        artist.toUpperCase();
+
+    const h1=Math.floor(Math.random()*360);
+    const h2=Math.floor(Math.random()*360);
+
+    document.getElementById("cover").style.background=
+        `linear-gradient(${Math.random()*360}deg,
+        hsl(${h1},80%,60%),
+        hsl(${h2},80%,40%))`;
+}
+
+function randomCover(){
+
+    document.getElementById("titleInput").value=
+        randomItem(titles);
+
+    document.getElementById("artistInput").value=
+        randomItem(artists);
+
+    makeCover();
+}
+
+</script>
+
+</body>
+</html>
