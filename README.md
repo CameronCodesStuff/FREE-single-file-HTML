@@ -1,11 +1,7 @@
 # HTML Websites
 [LIVE SITE](https://cameroncodesstuff.github.io/FREE-single-file-HTML/)
 
-A collection of **11 fun, weird, interactive HTML websites** built with plain HTML, CSS, and JavaScript.
-
-No frameworks.
-No complicated setup.
-No dependencies.
+A collection of **HTML websites** built with plain HTML, CSS, and JavaScript.
 
 Just open an `.html` file in your browser and you're good to go or open with [link](https://cameroncodesstuff.github.io/FREE-single-file-HTML/).
 
