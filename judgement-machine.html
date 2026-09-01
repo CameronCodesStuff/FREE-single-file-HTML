@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>The Judgement Machine</title>
+
+<style>
+body{
+    margin:0;
+    min-height:100vh;
+    background:#09090f;
+    color:white;
+    font-family:Arial;
+    display:grid;
+    place-items:center;
+}
+.box{
+    width:min(700px,90%);
+    background:#15151f;
+    padding:40px;
+    border-radius:24px;
+    text-align:center;
+}
+button{
+    display:block;
+    width:100%;
+    margin:10px 0;
+    padding:15px;
+    background:#24243a;
+    color:white;
+    border:1px solid #45456b;
+    border-radius:12px;
+    cursor:pointer;
+}
+button:hover{
+    background:#33334f;
+}
+h1{font-size:50px}
+.progress{
+    height:8px;
+    background:#29293a;
+    margin-top:20px;
+}
+.fill{
+    height:100%;
+    width:0;
+    background:#9d6cff;
+}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+
+<div id="quiz">
+
+<h1>We Will Judge You.</h1>
+
+<p id="question"></p>
+
+<div id="answers"></div>
+
+<div class="progress">
+<div class="fill" id="fill"></div>
+</div>
+
+</div>
+
+</div>
+
+<script>
+
+const questions=[
+
+[
+    "Someone says “we need to talk”.",
+    ["Panic internally","Ask what about","Prepare for war"]
+],
+
+[
+    "Last pizza slice?",
+    ["Ask everyone","Take it","Claim it spiritually"]
+],
+
+[
+    "Alarm at 7am?",
+    ["Get up","Snooze once","Wake up at 9:47"]
+],
+
+[
+    "Someone walks slowly in front of you.",
+    ["Walk around","Wait patiently","Become visibly furious"]
+],
+
+[
+    "You find £20 on the floor.",
+    ["Hand it in","Look for the owner","The universe chose me"]
+]
+
+];
+
+let current=0;
+let score=0;
+
+function showQuestion(){
+
+    const q=questions[current];
+
+    document.getElementById("question").textContent=q[0];
+
+    const answers=document.getElementById("answers");
+
+    answers.innerHTML="";
+
+    q[1].forEach((answer,index)=>{
+
+        const button=document.createElement("button");
+
+        button.textContent=answer;
+
+        button.onclick=()=>{
+
+            score+=index+1;
+            current++;
+
+            if(current<questions.length){
+                showQuestion();
+            }else{
+                finish();
+            }
+
+        };
+
+        answers.appendChild(button);
+    });
+
+    document.getElementById("fill").style.width=
+        (current/questions.length*100)+"%";
+}
+
+function finish(){
+
+    let verdict;
+
+    if(score<=7){
+        verdict="Suspiciously Normal";
+    }else if(score<=10){
+        verdict="Certified Chill";
+    }else if(score<=12){
+        verdict="Professional Menace";
+    }else{
+        verdict="ABSOLUTE MENACE";
+    }
+
+    document.getElementById("quiz").innerHTML=`
+
+        <h2>VERDICT</h2>
+
+        <h1>${verdict}</h1>
+
+        <p>Personality score: ${score}</p>
+
+        <p>
+        The machine has reviewed your choices.
+        Appeals will not be considered.
+        </p>
+
+        <button onclick="location.reload()">
+            JUDGE ME AGAIN
+        </button>
+    `;
+}
+
+showQuestion();
+
+</script>
+
+</body>
+</html>
