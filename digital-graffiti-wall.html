@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Digital Graffiti Wall</title>
+
+<style>
+body{
+    margin:0;
+    background:#111;
+    color:white;
+    font-family:Arial;
+}
+.toolbar{
+    padding:15px;
+    background:#1b1b1b;
+    display:flex;
+    gap:10px;
+}
+.toolbar input{
+    flex:1;
+    padding:12px;
+}
+.toolbar button{
+    padding:12px;
+    cursor:pointer;
+}
+.wall{
+    position:relative;
+    height:calc(100vh - 72px);
+    overflow:hidden;
+    background-color:#111;
+    background-image:
+        radial-gradient(#333 1px,transparent 1px);
+    background-size:20px 20px;
+}
+.tag{
+    position:absolute;
+    padding:8px;
+    font-weight:bold;
+    cursor:pointer;
+    user-select:none;
+    text-shadow:3px 3px #000;
+}
+</style>
+</head>
+
+<body>
+
+<div class="toolbar">
+
+<input
+    id="text"
+    placeholder="Write something..."
+    onkeydown="if(event.key==='Enter') spray()"
+>
+
+<button onclick="spray()">
+Spray 🎨
+</button>
+
+<button onclick="clearWall()">
+Clear
+</button>
+
+</div>
+
+<div class="wall" id="wall"></div>
+
+<script>
+
+function spray(){
+
+    const input=document.getElementById("text");
+
+    const value=input.value.trim();
+
+    if(!value)return;
+
+    const tag=document.createElement("div");
+
+    tag.className="tag";
+    tag.textContent=value;
+
+    tag.style.left=Math.random()*90+"%";
+    tag.style.top=Math.random()*85+"%";
+
+    tag.style.fontSize=
+        (15+Math.random()*35)+"px";
+
+    tag.style.color=
+        `hsl(${Math.random()*360},100%,70%)`;
+
+    tag.style.transform=
+        `rotate(${Math.random()*20-10}deg)`;
+
+    tag.title="Click to delete";
+
+    tag.onclick=()=>tag.remove();
+
+    document.getElementById("wall").appendChild(tag);
+
+    input.value="";
+    input.focus();
+}
+
+function clearWall(){
+    document.getElementById("wall").innerHTML="";
+}
+
+</script>
+
+</body>
+</html>
