@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>You Again</title>
+
+<style>
+body{
+    margin:0;
+    min-height:100vh;
+    background:#050507;
+    color:#eee;
+    font-family:Georgia,serif;
+    display:grid;
+    place-items:center;
+    transition:2s;
+}
+.container{
+    width:min(700px,88%);
+    text-align:center;
+}
+.box{
+    padding:40px;
+    border:1px solid #292933;
+    background:#0c0c11;
+    box-shadow:0 0 60px #000;
+}
+button{
+    padding:14px 22px;
+    background:#eee;
+    color:#111;
+    border:0;
+    cursor:pointer;
+    margin:8px;
+}
+.small{
+    color:#777;
+    font:12px monospace;
+}
+.hidden{
+    display:none;
+}
+#memory{
+    min-height:20px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="box">
+
+<p class="small">WELCOME</p>
+
+<h1 id="title">
+A Completely Normal Website
+</h1>
+
+<p id="message">
+There is nothing unusual here.
+</p>
+
+<button onclick="enter()">
+Continue
+</button>
+
+<div id="extra" class="hidden">
+
+<p>
+You clicked the button.
+</p>
+
+<button onclick="remember()">
+I understand
+</button>
+
+</div>
+
+<p id="memory" class="small"></p>
+
+</div>
+
+</div>
+
+<script>
+
+let visits=
+    Number(localStorage.getItem("wtmt_visits") || 0)+1;
+
+localStorage.setItem("wtmt_visits",visits);
+
+const title=document.getElementById("title");
+const message=document.getElementById("message");
+const extra=document.getElementById("extra");
+const memory=document.getElementById("memory");
+
+if(visits>1){
+
+    title.textContent="You came back.";
+
+    message.textContent=
+        "I was wondering when you would return.";
+}
+
+if(visits>3){
+
+    document.body.style.background="#020203";
+
+    message.textContent=
+        "You have visited this page "+visits+" times. Why?";
+}
+
+if(visits>6){
+
+    title.textContent="You really like this place.";
+
+    message.textContent=
+        "I remember every visit.";
+}
+
+function enter(){
+
+    extra.classList.remove("hidden");
+
+    if(visits>2){
+
+        message.textContent=
+            "I remember you.";
+            
+    }else{
+
+        message.textContent=
+            "Interesting choice.";
+    }
+}
+
+function remember(){
+
+    memory.textContent=
+        "Good. Now close the page. Unless you want to know what happens next.";
+
+    setTimeout(()=>{
+
+        title.textContent="...";
+
+        message.textContent=
+            "You did not close the page.";
+
+    },1800);
+
+    setTimeout(()=>{
+
+        memory.textContent=
+            "I knew you wouldn't.";
+
+    },4000);
+}
+
+</script>
+
+</body>
+</html>
