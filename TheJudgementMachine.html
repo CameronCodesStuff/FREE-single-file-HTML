@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Judgement Machine</title>
+
+<style>
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        min-height: 100vh;
+        font-family: Arial, Helvetica, sans-serif;
+        background:
+            radial-gradient(circle at 20% 20%, #302060 0, transparent 30%),
+            radial-gradient(circle at 80% 80%, #142d4c 0, transparent 30%),
+            #08080d;
+        color: white;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 25px;
+        overflow-x: hidden;
+    }
+
+    body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        background: repeating-linear-gradient(
+            0deg,
+            rgba(255,255,255,0.015) 0px,
+            rgba(255,255,255,0.015) 1px,
+            transparent 1px,
+            transparent 4px
+        );
+    }
+
+    .container {
+        width: min(720px, 100%);
+        position: relative;
+    }
+
+    .card {
+        background: rgba(14, 14, 22, 0.94);
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 24px;
+        padding: 45px;
+        box-shadow:
+            0 30px 80px rgba(0,0,0,0.6),
+            0 0 50px rgba(130,70,255,0.08);
+        backdrop-filter: blur(15px);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(90deg, #ff3864, #9b5cff, #36d1ff);
+    }
+
+    .hidden {
+        display: none !important;
+    }
+
+    .eyebrow {
+        text-transform: uppercase;
+        letter-spacing: 4px;
+        font-size: 11px;
+        color: #9b8fae;
+        margin-bottom: 15px;
+    }
+
+    h1 {
+        font-size: clamp(42px, 8vw, 72px);
+        line-height: 0.95;
+        margin-bottom: 20px;
+        background: linear-gradient(90deg, #fff, #bba8ff);
+        -webkit-background-clip: text;
+        color: transparent;
+    }
+
+    h2 {
+        font-size: 32px;
+        margin-bottom: 12px;
+    }
+
+    p {
+        color: #aaa5b5;
+        line-height: 1.6;
+    }
+
+    .warning {
+        margin: 25px 0;
+        padding: 15px;
+        border: 1px solid rgba(255, 56, 100, 0.25);
+        background: rgba(255, 56, 100, 0.06);
+        border-radius: 12px;
+        color: #ff8ca5;
+        font-size: 14px;
+    }
+
+    button {
+        border: none;
+        cursor: pointer;
+        font: inherit;
+    }
+
+    .start-btn {
+        width: 100%;
+        margin-top: 25px;
+        padding: 17px 25px;
+        border-radius: 12px;
+        background: white;
+        color: #09090d;
+        font-weight: 800;
+        transition: 0.2s;
+    }
+
+    .start-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 30px rgba(255,255,255,0.15);
+    }
+
+    .topbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        color: #8f889c;
+        font-size: 13px;
+    }
+
+    .progress {
+        height: 5px;
+        background: #24232c;
+        border-radius: 20px;
+        overflow: hidden;
+        margin-bottom: 35px;
+    }
+
+    .progress-bar {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, #ff3864, #9b5cff);
+        transition: width 0.4s ease;
+    }
+
+    .question {
+        font-size: clamp(25px, 5vw, 38px);
+        line-height: 1.15;
+        margin-bottom: 30px;
+    }
+
+    .answers {
+        display: grid;
+        gap: 12px;
+    }
+
+    .answer {
+        width: 100%;
+        text-align: left;
+        padding: 18px;
+        border-radius: 13px;
+        background: #181720;
+        border: 1px solid #2c2a36;
+        color: #eee;
+        transition: 0.2s;
+    }
+
+    .answer:hover {
+        transform: translateX(5px);
+        border-color: #9b5cff;
+        background: #201c2d;
+    }
+
+    .answer.selected {
+        border-color: #fff;
+        background: #2b2540;
+    }
+
+    .next-btn {
+        margin-top: 20px;
+        width: 100%;
+        padding: 16px;
+        border-radius: 12px;
+        background: #9b5cff;
+        color: white;
+        font-weight: bold;
+        opacity: 0.4;
+        pointer-events: none;
+        transition: 0.2s;
+    }
+
+    .next-btn.ready {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .next-btn.ready:hover {
+        background: #b17aff;
+    }
+
+    /* Judging screen */
+
+    .judging {
+        text-align: center;
+        min-height: 430px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    .scanner {
+        width: 130px;
+        height: 130px;
+        margin: 0 auto 30px;
+        border-radius: 50%;
+        border: 2px solid #9b5cff;
+        position: relative;
+        box-shadow: 0 0 40px rgba(155,92,255,0.25);
+        animation: pulse 1.2s infinite;
+    }
+
+    .scanner::before {
+        content: "";
+        position: absolute;
+        left: 10px;
+        right: 10px;
+        top: 50%;
+        height: 2px;
+        background: #ff3864;
+        box-shadow: 0 0 15px #ff3864;
+        animation: scan 1s infinite;
+    }
+
+    .scanner::after {
+        content: "";
+        position: absolute;
+        inset: 25px;
+        border-radius: 50%;
+        border: 1px dashed #777;
+    }
+
+    @keyframes pulse {
+        50% {
+            transform: scale(1.05);
+            box-shadow: 0 0 65px rgba(155,92,255,0.4);
+        }
+    }
+
+    @keyframes scan {
+        0%,100% { transform: translateY(-35px); }
+        50% { transform: translateY(35px); }
+    }
+
+    .judgement-text {
+        font-size: 20px;
+        min-height: 32px;
+        color: #c8c1d2;
+    }
+
+    .dots {
+        color: #9b5cff;
+        letter-spacing: 5px;
+        margin-top: 15px;
+    }
+
+    /* Result */
+
+    .result {
+        text-align: center;
+    }
+
+    .stamp {
+        display: inline-block;
+        padding: 8px 15px;
+        border: 2px solid #ff3864;
+        color: #ff3864;
+        transform: rotate(-3deg);
+        font-weight: 900;
+        letter-spacing: 3px;
+        margin-bottom: 25px;
+    }
+
+    .result-title {
+        font-size: clamp(38px, 8vw, 64px);
+        margin-bottom: 12px;
+    }
+
+    .result-subtitle {
+        color: #9d95a9;
+        margin-bottom: 30px;
+    }
+
+    .score-box {
+        background: #181720;
+        border: 1px solid #2d2a37;
+        padding: 20px;
+        border-radius: 15px;
+        margin-bottom: 20px;
+    }
+
+    .score-number {
+        font-size: 45px;
+        font-weight: 900;
+    }
+
+    .bar {
+        height: 9px;
+        background: #292731;
+        border-radius: 20px;
+        overflow: hidden;
+        margin-top: 12px;
+    }
+
+    .bar-fill {
+        height: 100%;
+        width: 0;
+        background: linear-gradient(90deg, #36d1ff, #9b5cff, #ff3864);
+        transition: width 1.5s ease;
+    }
+
+    .description {
+        text-align: left;
+        background: rgba(255,255,255,0.035);
+        padding: 20px;
+        border-radius: 15px;
+        border-left: 3px solid #9b5cff;
+        margin-bottom: 20px;
+    }
+
+    .restart {
+        width: 100%;
+        padding: 16px;
+        border-radius: 12px;
+        background: white;
+        color: black;
+        font-weight: 800;
+    }
+
+    .restart:hover {
+        transform: translateY(-2px);
+    }
+
+    .tiny {
+        font-size: 11px;
+        color: #686372;
+        margin-top: 18px;
+    }
+
+    .shake {
+        animation: shake 0.35s;
+    }
+
+    @keyframes shake {
+        25% { transform: translateX(-7px); }
+        50% { transform: translateX(7px); }
+        75% { transform: translateX(-5px); }
+    }
+
+    @media (max-width: 600px) {
+        .card {
+            padding: 28px 22px;
+        }
+    }
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- START -->
+    <section class="card" id="startScreen">
+        <div class="eyebrow">Psychological Assessment // v4.7</div>
+
+        <h1>The<br>Judgement<br>Machine.</h1>
+
+        <p>
+            Answer a few completely normal questions and allow our
+            highly questionable algorithm to determine what kind of
+            person you really are.
+        </p>
+
+        <div class="warning">
+            ⚠ WARNING: Results may expose traits you were previously
+            unaware of. The machine is never wrong. Probably.
+        </div>
+
+        <button class="start-btn" onclick="startTest()">
+            BEGIN JUDGEMENT →
+        </button>
+
+        <div class="tiny">
+            No personal data is collected. Your dignity, however, may not survive.
+        </div>
+    </section>
+
+
+    <!-- QUIZ -->
+    <section class="card hidden" id="quizScreen">
+
+        <div class="topbar">
+            <span id="questionNumber">QUESTION 1 / 8</span>
+            <span id="scorePreview">SUSPICION: 0%</span>
+        </div>
+
+        <div class="progress">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+
+        <div class="question" id="questionText"></div>
+
+        <div class="answers" id="answers"></div>
+
+        <button class="next-btn" id="nextBtn" onclick="nextQuestion()">
+            LOCK IN ANSWER →
+        </button>
+
+    </section>
+
+
+    <!-- JUDGING -->
+    <section class="card hidden" id="judgingScreen">
+        <div class="judging">
+
+            <div class="scanner"></div>
+
+            <div class="eyebrow">ANALYSIS IN PROGRESS</div>
+
+            <h2>Judging you...</h2>
+
+            <div class="judgement-text" id="judgementText">
+                Examining your decisions.
+            </div>
+
+            <div class="dots">•••</div>
+
+        </div>
+    </section>
+
+
+    <!-- RESULT -->
+    <section class="card hidden" id="resultScreen">
+
+        <div class="result">
+
+            <div class="stamp">VERDICT</div>
+
+            <div class="eyebrow">THE MACHINE HAS SPOKEN</div>
+
+            <h2 class="result-title" id="resultTitle">
+                Professional Menace
+            </h2>
+
+            <p class="result-subtitle" id="resultSubtitle">
+                Somehow, this is your personality.
+            </p>
+
+            <div class="score-box">
+                <div class="eyebrow">PERSONALITY SCORE</div>
+                <div class="score-number" id="scoreNumber">0%</div>
+
+                <div class="bar">
+                    <div class="bar-fill" id="scoreBar"></div>
+                </div>
+            </div>
+
+            <div class="description">
+                <p id="resultDescription"></p>
+            </div>
+
+            <button class="restart" onclick="restart()">
+                ↻ GET JUDGED AGAIN
+            </button>
+
+            <div class="tiny">
+                Assessment complete. Please do not appeal this decision.
+            </div>
+
+        </div>
+
+    </section>
+
+</div>
+
+
+<script>
+
+const questions = [
+
+    {
+        q: "You see someone walking painfully slowly in front of you. What do you do?",
+        answers: [
+            { text: "Walk around them. Life goes on.", points: 1 },
+            { text: "Quietly overtake them like a trained professional.", points: 2 },
+            { text: "Stare at the back of their head until they sense it.", points: 4 },
+            { text: "Accept that this is now your life.", points: 5 }
+        ]
+    },
+
+    {
+        q: "Your alarm goes off at 7:00 AM. Your plans begin at 8:00.",
+        answers: [
+            { text: "Get up immediately. Responsible behaviour.", points: 1 },
+            { text: "Snooze once.", points: 2 },
+            { text: "Snooze until 7:47 and become a blur.", points: 4 },
+            { text: "Wake up at 10:36 and blame the universe.", points: 5 }
+        ]
+    },
+
+    {
+        q: "Someone sends you 'we need to talk'.",
+        answers: [
+            { text: "Ask what about.", points: 1 },
+            { text: "Mild concern. Carry on.", points: 2 },
+            { text: "Immediately assume your entire life is over.", points: 4 },
+            { text: "Reply 'sure' and begin preparing for war.", points: 5 }
+        ]
+    },
+
+    {
+        q: "You accidentally make eye contact with a stranger.",
+        answers: [
+            { text: "Smile politely.", points: 1 },
+            { text: "Look away.", points: 2 },
+            { text: "Pretend I was looking at something behind them.", points: 4 },
+            { text: "Now we're enemies.", points: 5 }
+        ]
+    },
+
+    {
+        q: "There is one slice of pizza left.",
+        answers: [
+            { text: "Ask if anyone wants it.", points: 1 },
+            { text: "Take it. Someone else can speak up.", points: 3 },
+            { text: "Wait strategically for everyone to leave.", points: 4 },
+            { text: "It's mine. I have already mentally claimed it.", points: 5 }
+        ]
+    },
+
+    {
+        q: "Your friend says: 'I've got a great idea.'",
+        answers: [
+            { text: "Nice. Let's hear it.", points: 1 },
+            { text: "I'm listening.", points: 2 },
+            { text: "This is either genius or catastrophic.", points: 4 },
+            { text: "I am immediately involved somehow.", points: 5 }
+        ]
+    },
+
+    {
+        q: "You find £20 on the floor.",
+        answers: [
+            { text: "Hand it in.", points: 1 },
+            { text: "Look around for the owner.", points: 2 },
+            { text: "Wait... nobody saw that, right?", points: 4 },
+            { text: "The universe has selected me.", points: 5 }
+        ]
+    },
+
+    {
+        q: "Be honest. How often do you say 'I'll do it tomorrow'?",
+        answers: [
+            { text: "Rarely.", points: 1 },
+            { text: "Sometimes.", points: 2 },
+            { text: "More than I'd like to admit.", points: 4 },
+            { text: "Tomorrow is basically my brand.", points: 5 }
+        ]
+    }
+
+];
+
+let currentQuestion = 0;
+let totalScore = 0;
+let selectedPoints = null;
+
+function startTest() {
+    document.getElementById("startScreen").classList.add("hidden");
+    document.getElementById("quizScreen").classList.remove("hidden");
+
+    currentQuestion = 0;
+    totalScore = 0;
+
+    showQuestion();
+}
+
+function showQuestion() {
+
+    selectedPoints = null;
+
+    const question = questions[currentQuestion];
+
+    document.getElementById("questionNumber").textContent =
+        `QUESTION ${currentQuestion + 1} / ${questions.length}`;
+
+    document.getElementById("scorePreview").textContent =
+        `SUSPICION: ${Math.round((totalScore / (currentQuestion * 5 || 1)) * 100)}%`;
+
+    document.getElementById("progressBar").style.width =
+        `${(currentQuestion / questions.length) * 100}%`;
+
+    document.getElementById("questionText").textContent = question.q;
+
+    const answers = document.getElementById("answers");
+    answers.innerHTML = "";
+
+    question.answers.forEach((answer, index) => {
+
+        const button = document.createElement("button");
+
+        button.className = "answer";
+        button.textContent = `${String.fromCharCode(65 + index)}. ${answer.text}`;
+
+        button.onclick = () => selectAnswer(button, answer.points);
+
+        answers.appendChild(button);
+    });
+
+    const next = document.getElementById("nextBtn");
+    next.classList.remove("ready");
+    next.textContent =
+        currentQuestion === questions.length - 1
+        ? "SUBMIT YOUR SOUL →"
+        : "LOCK IN ANSWER →";
+}
+
+function selectAnswer(button, points) {
+
+    document.querySelectorAll(".answer").forEach(btn => {
+        btn.classList.remove("selected");
+    });
+
+    button.classList.add("selected");
+
+    selectedPoints = points;
+
+    document.getElementById("nextBtn").classList.add("ready");
+}
+
+function nextQuestion() {
+
+    if (selectedPoints === null) {
+
+        const quiz = document.getElementById("quizScreen");
+
+        quiz.classList.remove("shake");
+        void quiz.offsetWidth;
+        quiz.classList.add("shake");
+
+        return;
+    }
+
+    totalScore += selectedPoints;
+
+    currentQuestion++;
+
+    if (currentQuestion >= questions.length) {
+        showJudgement();
+    } else {
+        showQuestion();
+    }
+}
+
+function showJudgement() {
+
+    document.getElementById("quizScreen").classList.add("hidden");
+    document.getElementById("judgingScreen").classList.remove("hidden");
+
+    const messages = [
+        "Examining your decisions.",
+        "Cross-referencing your questionable behaviour.",
+        "Detecting levels of chaos.",
+        "Consulting the algorithm.",
+        "Asking several disappointed scientists.",
+        "Reviewing the evidence.",
+        "Calculating your vibe.",
+        "Finalising your inevitable downfall."
+    ];
+
+    let i = 0;
+
+    const text = document.getElementById("judgementText");
+
+    const interval = setInterval(() => {
+
+        text.textContent = messages[i];
+
+        i++;
+
+        if (i >= messages.length) {
+            clearInterval(interval);
+
+            setTimeout(showResult, 800);
+        }
+
+    }, 650);
+}
+
+function showResult() {
+
+    document.getElementById("judgingScreen").classList.add("hidden");
+    document.getElementById("resultScreen").classList.remove("hidden");
+
+    /*
+        Lowest possible score = 8
+        Highest possible score = 40
+    */
+
+    const percentage =
+        Math.round(((totalScore - 8) / 32) * 100);
+
+    let result;
+
+    if (totalScore <= 13) {
+
+        result = {
+            title: "Suspiciously Normal",
+            subtitle: "The machine doesn't know what to do with you.",
+            description:
+                "You're remarkably stable. You make sensible choices, probably read instructions, and may even put things back where you found them. Frankly, it's unsettling. The machine has searched for chaos and found absolutely nothing."
+        };
+
+    } else if (totalScore <= 20) {
+
+        result = {
+            title: "Certified Chill",
+            subtitle: "You've got your life together... mostly.",
+            description:
+                "You're calm, relatively sensible and capable of functioning in society. However, there are tiny signs of menace beneath the surface. The machine recommends keeping an eye on you."
+        };
+
+    } else if (totalScore <= 28) {
+
+        result = {
+            title: "Professional Menace",
+            subtitle: "You're not evil. You're just... a lot.",
+            description:
+                "You possess a dangerous combination of confidence, questionable decisions and absolutely no fear of consequences. Your friends probably have at least three stories that begin with 'bro, remember when...'"
+        };
+
+    } else if (totalScore <= 35) {
+
+        result = {
+            title: "Walking Red Flag",
+            subtitle: "The machine has concerns.",
+            description:
+                "Your decision-making process appears to involve vibes, impulse and a suspicious lack of preparation. Somehow, you continue to survive. Nobody knows how."
+        };
+
+    } else {
+
+        result = {
+            title: "ABSOLUTE MENACE",
+            subtitle: "The machine has requested legal representation.",
+            description:
+                "There is no elegant way to say this: you are chaos with Wi-Fi. Rules are suggestions, consequences are tomorrow's problem, and somehow you're always involved when something goes wrong. Respectfully... seek supervision."
+        };
+    }
+
+    document.getElementById("resultTitle").textContent = result.title;
+    document.getElementById("resultSubtitle").textContent = result.subtitle;
+    document.getElementById("resultDescription").textContent = result.description;
+
+    document.getElementById("scoreNumber").textContent = `${percentage}%`;
+
+    setTimeout(() => {
+        document.getElementById("scoreBar").style.width =
+            `${percentage}%`;
+    }, 200);
+}
+
+function restart() {
+
+    document.getElementById("resultScreen").classList.add("hidden");
+    document.getElementById("startScreen").classList.remove("hidden");
+
+    document.getElementById("scoreBar").style.width = "0%";
+}
+
+</script>
+
+</body>
+</html>
+```
