@@ -1,0 +1,4490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>OUTRUN 360 — Maximum Heat</title>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;overflow:hidden;background:#020409;color:#fff;font-family:Arial,sans-serif;user-select:none}
+canvas{display:block}
+button{font:inherit}
+
+#hud{position:fixed;inset:0;z-index:10;pointer-events:none;text-shadow:0 2px 8px #000}
+#left{position:absolute;top:18px;left:22px}
+#right{position:absolute;top:18px;right:22px;text-align:right}
+.small{font-size:9px;letter-spacing:3px;opacity:.65;margin-top:8px}
+.bar{width:230px;height:8px;background:#000b;border:1px solid #ffffff44;margin-top:4px;overflow:hidden;transform:skewX(-12deg)}
+.fill{height:100%;transition:width .08s}
+#hpFill{background:linear-gradient(90deg,#d50000,#ff5252)}
+#nitroFill{background:linear-gradient(90deg,#0277bd,#00e5ff)}
+#escapeFill{background:linear-gradient(90deg,#ff6d00,#ffea00)}
+#tier{font-size:16px;font-weight:900;letter-spacing:4px;color:#ff1744;margin-top:12px}
+#heat{font-size:24px;color:#ffc400;letter-spacing:4px}
+#score{font-size:26px;font-weight:1000}
+#combo{font-size:38px;font-weight:1000;color:#ffea00}
+#drift{font-size:13px;color:#00e5ff;margin-top:5px}
+
+#speedBox{position:absolute;right:25px;bottom:25px;text-align:right}
+#gear{font-size:11px;letter-spacing:5px;color:#00e5ff}
+#speed{font-size:72px;font-weight:1000;font-style:italic;line-height:.85}
+#kmh{font-size:9px;letter-spacing:7px;opacity:.6;margin-top:8px}
+
+#abilities{position:absolute;left:22px;bottom:22px;display:flex;gap:8px}
+.ability{width:145px;padding:9px 11px;background:#000a;border-left:3px solid #00e5ff}
+.ability small{font-size:8px;opacity:.55}
+.ability div{font-size:11px;font-weight:bold;margin-top:3px}
+
+#message{
+position:absolute;
+top:23%;
+left:50%;
+transform:translate(-50%,-50%);
+font-size:38px;
+font-weight:1000;
+font-style:italic;
+white-space:nowrap;
+opacity:0;
+transition:opacity .15s;
+text-align:center
+}
+
+#warning{
+position:absolute;
+top:34%;
+left:50%;
+transform:translate(-50%,-50%);
+font-size:17px;
+letter-spacing:7px;
+color:#ff1744;
+font-weight:900;
+opacity:0;
+transition:.15s
+}
+
+#cameraLabel{
+position:absolute;
+top:70px;
+left:50%;
+transform:translateX(-50%);
+padding:7px 14px;
+background:#000a;
+border:1px solid #ffffff44;
+font-size:10px;
+letter-spacing:4px;
+opacity:0;
+transition:.2s
+}
+
+#controls{
+position:absolute;
+bottom:6px;
+left:50%;
+transform:translateX(-50%);
+font-size:8px;
+letter-spacing:1px;
+opacity:.4;
+white-space:nowrap
+}
+
+#minimap{
+position:fixed;
+right:22px;
+top:120px;
+z-index:12;
+width:180px;
+height:180px;
+border-radius:50%;
+overflow:hidden;
+border:2px solid #ffffff77;
+background:#071019dd;
+box-shadow:0 0 25px #000
+}
+
+#map{width:180px;height:180px}
+
+#damageFlash{
+position:fixed;
+inset:0;
+z-index:25;
+pointer-events:none;
+background:#ff002800;
+transition:.1s
+}
+
+#tierCinema{
+position:fixed;
+inset:0;
+z-index:40;
+pointer-events:none;
+display:flex;
+align-items:center;
+justify-content:center;
+flex-direction:column;
+background:#0000;
+opacity:0;
+transition:.3s
+}
+
+#tierCinema.show{opacity:1;background:#000a}
+
+#tierCinema .line{
+width:0;
+height:2px;
+background:#ff1744;
+transition:width .4s
+}
+
+#tierCinema.show .line{width:min(700px,80vw)}
+
+#tierCinema small{
+font-size:11px;
+letter-spacing:10px;
+color:#ff1744;
+margin:18px
+}
+
+#tierCinema h1{
+font-size:clamp(50px,9vw,120px);
+font-style:italic;
+line-height:.85
+}
+
+#tierCinema h2{
+font-size:14px;
+letter-spacing:8px;
+margin-top:15px;
+color:#ff5252
+}
+
+.screen{
+position:fixed;
+inset:0;
+z-index:50;
+display:flex;
+align-items:center;
+justify-content:center;
+flex-direction:column;
+background:radial-gradient(circle at 50% 25%,#182c48,#070a12 50%,#020306)
+}
+
+#title h1{
+font-size:clamp(55px,10vw,135px);
+font-style:italic;
+font-weight:1000;
+letter-spacing:-7px;
+line-height:.78
+}
+
+#title h1 span{color:#ff1744}
+
+.sub{
+margin-top:20px;
+font-size:12px;
+letter-spacing:9px;
+opacity:.7
+}
+
+.tag{
+max-width:720px;
+text-align:center;
+line-height:1.7;
+font-size:14px;
+opacity:.72;
+margin-top:28px
+}
+
+.buttons{display:flex;gap:12px;margin-top:28px}
+
+.btn{
+pointer-events:auto;
+cursor:pointer;
+padding:13px 30px;
+color:#fff;
+background:#ffffff0c;
+border:1px solid #ffffff55;
+letter-spacing:4px;
+font-weight:bold;
+transition:.2s
+}
+
+.btn:hover{
+background:#fff;
+color:#000;
+transform:translateY(-3px)
+}
+
+#pause,#gameOver,#upgrade{
+display:none;
+background:#02040de8;
+backdrop-filter:blur(9px)
+}
+
+#pause h1,#gameOver h1{
+font-size:68px;
+font-style:italic
+}
+
+#stats{
+text-align:center;
+line-height:2;
+margin-top:18px;
+opacity:.75
+}
+
+#upgrade h1{
+font-size:34px;
+letter-spacing:7px;
+margin-bottom:24px
+}
+
+#upgradeCards{
+display:flex;
+gap:14px
+}
+
+.upCard{
+pointer-events:auto;
+cursor:pointer;
+width:245px;
+min-height:205px;
+padding:18px;
+background:#ffffff0c;
+border:1px solid #ffffff35;
+transition:.2s
+}
+
+.upCard:hover{
+transform:translateY(-8px);
+background:#ffffff18
+}
+
+.upCard small{letter-spacing:3px}
+.upCard h2{margin-top:12px;font-size:20px}
+.upCard p{margin-top:12px;font-size:13px;line-height:1.5;opacity:.65}
+
+@media(max-width:700px){
+#abilities,#controls,#minimap{display:none}
+#upgradeCards{flex-direction:column}
+.upCard{width:85vw;min-height:auto}
+}
+</style>
+</head>
+
+<body>
+
+<div id="hud">
+<div id="left">
+<div class="small">PROCEDURAL COUNTY</div>
+<div id="tier">TIER 1 · STREET HEAT</div>
+<div id="heat">★☆☆☆☆☆</div>
+
+<div class="small">VEHICLE INTEGRITY</div>
+<div class="bar"><div class="fill" id="hpFill"></div></div>
+
+<div class="small">NITRO</div>
+<div class="bar"><div class="fill" id="nitroFill"></div></div>
+
+<div class="small">ESCAPE PROGRESS</div>
+<div class="bar"><div class="fill" id="escapeFill"></div></div>
+</div>
+
+<div id="right">
+<div id="score">00000000</div>
+<div id="combo">x1.0</div>
+<div id="drift"></div>
+</div>
+
+<div id="message"></div>
+<div id="warning"></div>
+<div id="cameraLabel"></div>
+
+<div id="speedBox">
+<div id="gear">GEAR 1</div>
+<div id="speed">0</div>
+<div id="kmh">KM/H</div>
+</div>
+
+<div id="abilities">
+<div class="ability">
+<small>[ E ] OFFENSE</small>
+<div id="empText">EMP READY</div>
+</div>
+
+<div class="ability">
+<small>[ Q ] DEFENSE</small>
+<div id="shieldText">SHIELD READY</div>
+</div>
+
+<div class="ability">
+<small>[ R ] RECOVERY</small>
+<div>FLIP VEHICLE</div>
+</div>
+</div>
+
+<div id="controls">
+W/S DRIVE · A/D STEER · CTRL HANDBRAKE · SPACE JUMP · SHIFT NITRO · AIR: WASD · E EMP · Q SHIELD · R RECOVER · C CAMERA
+</div>
+</div>
+
+<div id="minimap">
+<canvas id="map" width="180" height="180"></canvas>
+</div>
+
+<div id="damageFlash"></div>
+
+<div id="tierCinema">
+<div class="line"></div>
+<small>THREAT ESCALATED</small>
+<h1 id="cinemaTier">TIER 2</h1>
+<h2 id="cinemaName">PURSUIT</h2>
+<div class="line" style="margin-top:20px"></div>
+</div>
+
+<div id="title" class="screen">
+<h1>OUT<span>RUN</span> 360</h1>
+<div class="sub">MAXIMUM HEAT</div>
+<div class="tag">
+True 360° velocity-based vehicle physics. Drift, countersteer, jump,
+roll, escape coordinated police units, destroy roadblocks, survive
+spike strips and outrun six escalating pursuit tiers.
+</div>
+<div class="buttons">
+<button class="btn" id="playBtn">PLAY</button>
+</div>
+</div>
+
+<div id="upgrade" class="screen">
+<h1>CHOOSE YOUR LOOT</h1>
+<div id="upgradeCards"></div>
+</div>
+
+<div id="pause" class="screen">
+<h1>PAUSED</h1>
+<button class="btn" id="resumeBtn" style="margin-top:22px">RESUME</button>
+</div>
+
+<div id="gameOver" class="screen">
+<h1>BUSTED</h1>
+<div id="stats"></div>
+<button class="btn" id="restartBtn" style="margin-top:22px">RESTART</button>
+</div>
+
+<script type="importmap">
+{
+"imports":{
+"three":"https://unpkg.com/three@0.160.0/build/three.module.js"
+}
+}
+</script>
+
+<script type="module">
+
+import * as THREE from "three";
+
+const $=id=>document.getElementById(id);
+
+const UI={
+hp:$("hpFill"),
+nitro:$("nitroFill"),
+escape:$("escapeFill"),
+tier:$("tier"),
+heat:$("heat"),
+score:$("score"),
+combo:$("combo"),
+drift:$("drift"),
+speed:$("speed"),
+gear:$("gear"),
+message:$("message"),
+warning:$("warning"),
+camera:$("cameraLabel"),
+emp:$("empText"),
+shield:$("shieldText"),
+damage:$("damageFlash"),
+tierCinema:$("tierCinema"),
+cinemaTier:$("cinemaTier"),
+cinemaName:$("cinemaName"),
+pause:$("pause"),
+gameOver:$("gameOver"),
+upgrade:$("upgrade"),
+title:$("title")
+};
+
+/* =========================================================
+SCENE
+========================================================= */
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x7eb4d6);
+scene.fog=new THREE.Fog(0x7eb4d6,230,750);
+
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(innerWidth,innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio,1.6));
+renderer.shadowMap.enabled=true;
+renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+const camera=new THREE.PerspectiveCamera(
+68,
+innerWidth/innerHeight,
+.1,
+1500
+);
+
+scene.add(
+new THREE.HemisphereLight(
+0xd9efff,
+0x344321,
+2.2
+)
+);
+
+const sun=new THREE.DirectionalLight(0xffffff,2.5);
+sun.position.set(-100,160,80);
+sun.castShadow=true;
+sun.shadow.mapSize.set(2048,2048);
+sun.shadow.camera.left=-130;
+sun.shadow.camera.right=130;
+sun.shadow.camera.top=130;
+sun.shadow.camera.bottom=-130;
+scene.add(sun);
+
+/* =========================================================
+STATE
+========================================================= */
+
+let started=false;
+let paused=false;
+let upgradePaused=false;
+let ended=false;
+
+let health=100;
+let maxHealth=100;
+
+let nitro=100;
+let maxNitro=100;
+
+let score=0;
+let combo=1;
+let comboTimer=0;
+let totalDistance=0;
+
+let tier=1;
+let maxTier=1;
+let escapeProgress=0;
+let policeDestroyed=0;
+
+let empCooldown=0;
+let shieldCooldown=0;
+let shieldTimer=0;
+let shieldActive=false;
+
+let empRange=38;
+let ramPower=1;
+let jumpPower=1;
+let magnetRadius=6;
+
+let cameraMode=0;
+let cameraShake=0;
+let elapsed=0;
+
+let copSpawnTimer=2;
+let lootTimer=10;
+let roadblockTimer=15;
+
+let slowMotion=1;
+let slowMotionTimer=0;
+
+let currentDriftScore=0;
+let drifting=false;
+let nearMisses=0;
+
+const TIER_DATA=[
+null,
+{
+name:"STREET HEAT",
+maxCops:3,
+spawn:8,
+accuracy:.65,
+roadblocks:false,
+spikes:false,
+heli:false
+},
+{
+name:"PURSUIT",
+maxCops:5,
+spawn:6.5,
+accuracy:.78,
+roadblocks:false,
+spikes:false,
+heli:false
+},
+{
+name:"TACTICAL RESPONSE",
+maxCops:7,
+spawn:5,
+accuracy:.9,
+roadblocks:true,
+spikes:true,
+heli:false
+},
+{
+name:"MAXIMUM HEAT",
+maxCops:9,
+spawn:4,
+accuracy:1.05,
+roadblocks:true,
+spikes:true,
+heli:true
+},
+{
+name:"BLACKOUT",
+maxCops:11,
+spawn:3.2,
+accuracy:1.2,
+roadblocks:true,
+spikes:true,
+heli:true
+},
+{
+name:"INFINITE HEAT",
+maxCops:14,
+spawn:2.5,
+accuracy:1.4,
+roadblocks:true,
+spikes:true,
+heli:true
+}
+];
+
+const keys={};
+
+addEventListener("keydown",e=>{
+const k=e.key.toLowerCase();
+
+if(!keys[k]){
+handlePress(k);
+}
+
+keys[k]=true;
+});
+
+addEventListener("keyup",e=>{
+keys[e.key.toLowerCase()]=false;
+});
+
+function handlePress(k){
+
+if(!started||ended)return;
+
+if(k==="escape"&&!upgradePaused){
+togglePause();
+return;
+}
+
+if(paused||upgradePaused)return;
+
+if(k===" ")jump();
+if(k==="c")switchCamera();
+if(k==="e")useEMP();
+if(k==="q")useShield();
+if(k==="r")recoverVehicle();
+
+}
+
+/* =========================================================
+MATERIALS
+========================================================= */
+
+const mats={
+grass:new THREE.MeshStandardMaterial({
+color:0x52743c,
+roughness:1
+}),
+
+dirt:new THREE.MeshStandardMaterial({
+color:0x8a704d,
+roughness:1
+}),
+
+road:new THREE.MeshStandardMaterial({
+color:0x303238,
+roughness:.95
+}),
+
+line:new THREE.MeshBasicMaterial({
+color:0xffffff
+}),
+
+yellow:new THREE.MeshBasicMaterial({
+color:0xffd600
+}),
+
+black:new THREE.MeshStandardMaterial({
+color:0x090909,
+roughness:.9
+}),
+
+glass:new THREE.MeshStandardMaterial({
+color:0x13263c,
+metalness:.7,
+roughness:.15
+}),
+
+tree:new THREE.MeshStandardMaterial({
+color:0x315f2c,
+roughness:1
+}),
+
+trunk:new THREE.MeshStandardMaterial({
+color:0x5d3c24,
+roughness:1
+}),
+
+metal:new THREE.MeshStandardMaterial({
+color:0x666a70,
+metalness:.65,
+roughness:.35
+})
+};
+
+/* =========================================================
+CAR CREATION
+========================================================= */
+
+function makeCar(
+color=0xff1744,
+scale=1,
+police=false
+){
+
+const root=new THREE.Group();
+const suspension=new THREE.Group();
+
+root.add(suspension);
+
+const bodyMat=
+new THREE.MeshStandardMaterial({
+color,
+metalness:.58,
+roughness:.27
+});
+
+const body=new THREE.Mesh(
+new THREE.BoxGeometry(
+2.5*scale,
+.7*scale,
+4.8*scale
+),
+bodyMat
+);
+
+body.position.y=.85*scale;
+body.castShadow=true;
+
+suspension.add(body);
+
+const cabin=new THREE.Mesh(
+new THREE.BoxGeometry(
+1.85*scale,
+.82*scale,
+1.9*scale
+),
+mats.glass
+);
+
+cabin.position.set(
+0,
+1.55*scale,
+.1*scale
+);
+
+cabin.castShadow=true;
+
+suspension.add(cabin);
+
+const wheelGeo=
+new THREE.CylinderGeometry(
+.46*scale,
+.46*scale,
+.38*scale,
+12
+);
+
+const wheelPositions=[
+[-1.32,.48,-1.5],
+[1.32,.48,-1.5],
+[-1.32,.48,1.5],
+[1.32,.48,1.5]
+];
+
+const wheels=[];
+
+wheelPositions.forEach((p,i)=>{
+
+const holder=new THREE.Group();
+
+holder.position.set(
+p[0]*scale,
+p[1]*scale,
+p[2]*scale
+);
+
+const wheel=new THREE.Mesh(
+wheelGeo,
+mats.black
+);
+
+wheel.rotation.z=Math.PI/2;
+wheel.castShadow=true;
+
+holder.add(wheel);
+root.add(holder);
+
+wheels.push({
+holder,
+wheel,
+baseY:holder.position.y,
+index:i
+});
+
+});
+
+if(police){
+
+const bar=new THREE.Mesh(
+new THREE.BoxGeometry(
+1.5,
+.16,
+.3
+),
+mats.black
+);
+
+bar.position.set(
+0,
+2.12*scale,
+0
+);
+
+suspension.add(bar);
+
+const red=new THREE.PointLight(
+0xff0022,
+5,
+13
+);
+
+red.position.set(
+-.55,
+2.2,
+0
+);
+
+root.add(red);
+
+const blue=new THREE.PointLight(
+0x0066ff,
+5,
+13
+);
+
+blue.position.set(
+.55,
+2.2,
+0
+);
+
+root.add(blue);
+
+root.userData.policeLights=[
+red,
+blue
+];
+
+}
+
+root.userData.wheels=wheels;
+root.userData.suspension=suspension;
+
+return root;
+
+}
+
+/* =========================================================
+PLAYER
+========================================================= */
+
+const player=new THREE.Group();
+
+const playerCar=makeCar(0xff1744);
+
+player.add(playerCar);
+scene.add(player);
+
+player.position.set(0,0,0);
+player.rotation.y=Math.PI;
+
+const physics={
+
+velocity:new THREE.Vector3(),
+
+mass:1450,
+
+engineForce:18500,
+brakeForce:26000,
+reverseForce:9500,
+
+drag:.38,
+
+frontGrip:10.5,
+rearGrip:8.5,
+
+angularVelocity:0,
+
+verticalVelocity:0,
+height:0,
+
+grounded:true,
+
+airtime:0,
+
+pitch:0,
+roll:0,
+
+pitchVelocity:0,
+rollVelocity:0,
+
+suspension:[0,0,0,0],
+
+suspensionVelocity:[
+0,0,0,0
+],
+
+previousForwardSpeed:0,
+
+rolloverTimer:0
+
+};
+
+function playerForward(){
+
+return new THREE.Vector3(
+-Math.sin(player.rotation.y),
+0,
+-Math.cos(player.rotation.y)
+);
+
+}
+
+function playerRight(){
+
+const f=playerForward();
+
+return new THREE.Vector3(
+-f.z,
+0,
+f.x
+);
+
+}
+
+function getSurface(x,z){
+
+const lx=
+((x+60)%120+120)%120-60;
+
+const lz=
+((z+60)%120+120)%120-60;
+
+if(
+Math.abs(lx)<10||
+Math.abs(lz)<10
+){
+
+return{
+type:"ASPHALT",
+grip:1,
+drag:1,
+max:1
+};
+
+}
+
+const noise=
+Math.abs(
+Math.sin(x*.017)*
+Math.cos(z*.019)
+);
+
+if(noise>.72){
+
+return{
+type:"DIRT",
+grip:.58,
+drag:1.6,
+max:.68
+};
+
+}
+
+return{
+type:"GRASS",
+grip:.42,
+drag:2.1,
+max:.55
+};
+
+}
+
+/* =========================================================
+UPDATED SMOOTHER, HEAVIER STEERING
+========================================================= */
+
+function updatePlayer(dt){
+
+const forward=playerForward();
+const right=playerRight();
+
+const surface=
+getSurface(
+player.position.x,
+player.position.z
+);
+
+const forwardSpeed=
+physics.velocity.dot(forward);
+
+const lateralSpeed=
+physics.velocity.dot(right);
+
+let throttle=0;
+
+if(keys["w"])throttle=1;
+if(keys["s"])throttle=-1;
+
+let steer=0;
+
+if(keys["a"])steer=1;
+if(keys["d"])steer=-1;
+
+const handbrake=
+keys["control"];
+
+if(physics.grounded){
+
+let force=0;
+
+if(throttle>0){
+
+force=
+physics.engineForce;
+
+}else if(
+throttle<0&&
+forwardSpeed>2
+){
+
+force=
+-physics.brakeForce;
+
+}else if(throttle<0){
+
+force=
+-physics.reverseForce;
+
+}
+
+const acceleration=
+force/physics.mass;
+
+physics.velocity.addScaledVector(
+forward,
+acceleration*dt
+);
+
+/*
+    LOWER STEERING SENSITIVITY
+
+    Low speed:
+        72% steering response
+
+    High speed:
+        16% steering response
+
+    This prevents instant snapping.
+*/
+
+const speedAbs=
+Math.abs(forwardSpeed);
+
+const speedSteerFactor=
+THREE.MathUtils.lerp(
+.72,
+.16,
+THREE.MathUtils.clamp(
+speedAbs/65,
+0,
+1
+)
+);
+
+const steeringAngle=
+steer*
+.85*
+speedSteerFactor;
+
+/*
+    Steering only gains authority
+    progressively as speed rises.
+*/
+
+const yawForce=
+steeringAngle*
+THREE.MathUtils.clamp(
+speedAbs/18,
+0,
+1
+)*
+(speedAbs<2?0:1);
+
+/*
+    Reduced from 3.4 to 1.65.
+*/
+
+physics.angularVelocity+=
+yawForce*
+dt*
+1.65;
+
+/*
+    Handbrake lowers rear grip
+    to enable controlled drifting.
+*/
+
+let rearGrip=
+physics.rearGrip*
+surface.grip;
+
+let frontGrip=
+physics.frontGrip*
+surface.grip;
+
+if(
+handbrake&&
+speedAbs>8
+){
+
+rearGrip*=.14;
+frontGrip*=.8;
+
+}
+
+/*
+    Lateral tire resistance.
+*/
+
+const lateralResistance=
+THREE.MathUtils.clamp(
+rearGrip*dt,
+0,
+.92
+);
+
+physics.velocity.addScaledVector(
+right,
+-lateralSpeed*
+lateralResistance
+);
+
+/*
+    Natural slide yaw.
+*/
+
+const slideAmount=
+Math.abs(lateralSpeed);
+
+if(slideAmount>4){
+
+physics.angularVelocity+=
+Math.sign(lateralSpeed)*
+Math.min(
+slideAmount/25,
+.5
+)*
+dt*
+.45;
+
+}
+
+/*
+    Strong angular damping.
+
+    Prevents oscillation and
+    sudden direction changes.
+*/
+
+physics.angularVelocity*=
+Math.pow(
+.035,
+dt
+);
+
+/*
+    Rotation multiplier reduced
+    from 8 to 4.2.
+*/
+
+player.rotation.y+=
+physics.angularVelocity*
+(forwardSpeed>=0?1:-1)*
+dt*
+4.2;
+
+/*
+    Drag and rolling resistance.
+*/
+
+const aerodynamicDrag=
+physics.drag*
+physics.velocity.lengthSq()/
+physics.mass;
+
+if(
+physics.velocity.length()>.01
+){
+
+physics.velocity.addScaledVector(
+physics.velocity
+.clone()
+.normalize(),
+-aerodynamicDrag*dt
+);
+
+}
+
+physics.velocity.multiplyScalar(
+
+Math.pow(
+1-(.008*surface.drag),
+dt*60
+)
+
+);
+
+/*
+    Nitro.
+*/
+
+if(
+keys["shift"]&&
+nitro>0&&
+forwardSpeed>3
+){
+
+physics.velocity.addScaledVector(
+forward,
+28*dt
+);
+
+nitro=
+Math.max(
+0,
+nitro-25*dt
+);
+
+spawnNitro();
+
+cameraShake+=.004;
+
+}else{
+
+nitro=
+Math.min(
+maxNitro,
+nitro+3*dt
+);
+
+}
+
+const maxSpeed=
+92*surface.max+
+(keys["shift"]?25:0);
+
+if(
+physics.velocity.length()>
+maxSpeed
+){
+
+physics.velocity.setLength(
+maxSpeed
+);
+
+}
+
+player.position.addScaledVector(
+physics.velocity,
+dt
+);
+
+totalDistance+=
+physics.velocity.length()*
+dt;
+
+/*
+    Weight transfer.
+*/
+
+const longitudinalAcceleration=
+(
+forwardSpeed-
+physics.previousForwardSpeed
+)/
+Math.max(dt,.001);
+
+physics.previousForwardSpeed=
+forwardSpeed;
+
+const targetPitch=
+THREE.MathUtils.clamp(
+-longitudinalAcceleration*.006,
+-.13,
+.13
+);
+
+/*
+    BODY ROLL ALSO TONED DOWN.
+*/
+
+const targetRoll=
+THREE.MathUtils.clamp(
+
+-steer*
+Math.min(
+speedAbs/55,
+1
+)*
+.08+
+
+lateralSpeed*
+.003,
+
+-.12,
+.12
+
+);
+
+physics.pitch=
+THREE.MathUtils.lerp(
+physics.pitch,
+targetPitch,
+1-Math.pow(.01,dt)
+);
+
+physics.roll=
+THREE.MathUtils.lerp(
+physics.roll,
+targetRoll,
+1-Math.pow(.01,dt)
+);
+
+updateSuspension(
+dt,
+longitudinalAcceleration,
+steer,
+speedAbs
+);
+
+drifting=
+Math.abs(lateralSpeed)>4.2&&
+speedAbs>15&&
+Math.abs(steer)>.15;
+
+if(drifting){
+
+currentDriftScore+=
+Math.abs(lateralSpeed)*
+speedAbs*
+dt*
+combo;
+
+spawnTireSmoke();
+addSkidMarks();
+
+increaseCombo(.08*dt);
+
+}else if(
+currentDriftScore>80
+){
+
+const reward=
+Math.round(
+currentDriftScore
+);
+
+addScore(reward);
+
+showMessage(
+`DRIFT +${reward}`,
+"#00e5ff"
+);
+
+currentDriftScore=0;
+
+}
+
+if(
+surface.type!=="ASPHALT"&&
+speedAbs>9
+){
+
+spawnDust(
+surface.type
+);
+
+}
+
+}else{
+
+updateAirControl(dt);
+
+}
+
+updateVerticalPhysics(dt);
+
+playerCar
+.userData
+.suspension
+.rotation.x=
+physics.pitch;
+
+playerCar
+.userData
+.suspension
+.rotation.z=
+physics.roll;
+
+playerCar
+.userData
+.wheels
+.forEach(w=>{
+
+w.wheel.rotation.x+=
+forwardSpeed*
+dt*
+1.5;
+
+});
+
+if(
+health<45&&
+Math.random()<dt*8
+){
+
+spawnEngineSmoke();
+
+}
+
+}
+
+/* =========================================================
+SUSPENSION
+========================================================= */
+
+function updateSuspension(
+dt,
+accel,
+steer,
+speed
+){
+
+const frontCompression=
+THREE.MathUtils.clamp(
+-accel*.008,
+-.22,
+.22
+);
+
+const rearCompression=
+-frontCompression*.7;
+
+const sideRoll=
+steer*
+Math.min(
+speed/50,
+1
+)*
+.07;
+
+const targets=[
+
+frontCompression+sideRoll,
+
+frontCompression-sideRoll,
+
+rearCompression+sideRoll,
+
+rearCompression-sideRoll
+
+];
+
+for(
+let i=0;
+i<4;
+i++
+){
+
+const spring=
+-physics.suspension[i]*70;
+
+const damping=
+-physics.suspensionVelocity[i]*10;
+
+const force=
+spring+
+damping+
+(
+targets[i]-
+physics.suspension[i]
+)*40;
+
+physics.suspensionVelocity[i]+=
+force*dt;
+
+physics.suspension[i]+=
+physics.suspensionVelocity[i]*
+dt;
+
+const wheel=
+playerCar.userData.wheels[i];
+
+wheel.holder.position.y=
+wheel.baseY+
+physics.suspension[i];
+
+}
+
+}
+
+/* =========================================================
+JUMP + AIR PHYSICS
+========================================================= */
+
+function jump(){
+
+if(!physics.grounded)return;
+
+physics.verticalVelocity=
+(
+8.5+
+Math.min(
+physics.velocity.length()/25,
+3
+)
+)*
+jumpPower;
+
+physics.grounded=false;
+physics.airtime=0;
+
+physics.pitchVelocity=.2;
+
+physics.rollVelocity+=
+(Math.random()-.5)*.08;
+
+showMessage(
+"AIRBORNE",
+"#00e5ff"
+);
+
+}
+
+function updateAirControl(dt){
+
+physics.airtime+=dt;
+
+if(keys["w"])
+physics.pitchVelocity-=1.2*dt;
+
+if(keys["s"])
+physics.pitchVelocity+=1.2*dt;
+
+if(keys["a"])
+physics.rollVelocity+=1.4*dt;
+
+if(keys["d"])
+physics.rollVelocity-=1.4*dt;
+
+physics.pitch+=
+physics.pitchVelocity*dt;
+
+physics.roll+=
+physics.rollVelocity*dt;
+
+physics.pitchVelocity*=
+Math.pow(.95,dt*60);
+
+physics.rollVelocity*=
+Math.pow(.95,dt*60);
+
+if(
+keys["a"]&&
+keys["shift"]
+)
+player.rotation.y+=.8*dt;
+
+if(
+keys["d"]&&
+keys["shift"]
+)
+player.rotation.y-=.8*dt;
+
+}
+
+function updateVerticalPhysics(dt){
+
+if(!physics.grounded){
+
+physics.verticalVelocity-=24*dt;
+
+physics.height+=
+physics.verticalVelocity*
+dt;
+
+if(physics.height<=0){
+
+land();
+
+}
+
+}
+
+player.position.y=
+physics.height;
+
+}
+
+function land(){
+
+const impact=
+Math.abs(
+physics.verticalVelocity
+);
+
+physics.height=0;
+
+physics.verticalVelocity=0;
+
+physics.grounded=true;
+
+for(
+let i=0;
+i<4;
+i++
+){
+
+physics.suspensionVelocity[i]-=
+impact*.05;
+
+}
+
+cameraShake+=
+Math.min(
+.65,
+impact*.025
+);
+
+if(impact>17){
+
+const damageAmount=
+(impact-17)*1.7;
+
+damage(
+damageAmount
+);
+
+showMessage(
+`HARD LANDING -${Math.round(damageAmount)} HP`,
+"#ff1744"
+);
+
+}
+
+if(
+physics.airtime>.55
+){
+
+const multiplier=
+1+
+Math.min(
+physics.airtime*1.2,
+4
+);
+
+const reward=
+Math.round(
+physics.airtime*
+1000*
+multiplier*
+combo
+);
+
+addScore(reward);
+
+increaseCombo(
+multiplier*.2
+);
+
+showMessage(
+`AIRTIME x${multiplier.toFixed(1)} +${reward}`,
+"#00e5ff"
+);
+
+if(
+physics.airtime>2.2
+){
+
+triggerSlowMotion(
+.55,
+.7
+);
+
+}
+
+}
+
+physics.pitchVelocity=
+-impact*.01;
+
+physics.rollVelocity+=
+(Math.random()-.5)*
+impact*
+.008;
+
+}
+
+function recoverVehicle(){
+
+physics.roll=0;
+physics.pitch=0;
+physics.angularVelocity=0;
+
+physics.velocity.multiplyScalar(.4);
+
+physics.height=.3;
+physics.verticalVelocity=1;
+physics.grounded=false;
+
+showMessage(
+"VEHICLE RECOVERED",
+"#00e5ff"
+);
+
+}
+
+/* =========================================================
+WORLD
+========================================================= */
+
+const CHUNK=120;
+const VIEW=3;
+
+const chunks=new Map();
+
+const ramps=[];
+const obstacles=[];
+
+function hash(x,z){
+
+let n=
+x*374761393+
+z*668265263;
+
+n=
+(n^(n>>13))*
+1274126177;
+
+return(
+(
+n^(n>>16)
+)>>>0
+)/
+4294967295;
+
+}
+
+function chunkKey(x,z){
+
+return`${x},${z}`;
+
+}
+
+function createChunk(cx,cz){
+
+const root=
+new THREE.Group();
+
+root.position.set(
+cx*CHUNK,
+0,
+cz*CHUNK
+);
+
+const ground=
+new THREE.Mesh(
+
+new THREE.PlaneGeometry(
+CHUNK,
+CHUNK
+),
+
+mats.grass
+
+);
+
+ground.rotation.x=
+-Math.PI/2;
+
+ground.receiveShadow=true;
+
+root.add(ground);
+
+const roadV=
+new THREE.Mesh(
+
+new THREE.BoxGeometry(
+20,
+.18,
+CHUNK
+),
+
+mats.road
+
+);
+
+roadV.position.y=.08;
+roadV.receiveShadow=true;
+
+root.add(roadV);
+
+const roadH=
+new THREE.Mesh(
+
+new THREE.BoxGeometry(
+CHUNK,
+.18,
+20
+),
+
+mats.road
+
+);
+
+roadH.position.y=.08;
+roadH.receiveShadow=true;
+
+root.add(roadH);
+
+for(
+let z=-52;
+z<60;
+z+=12
+){
+
+const line=
+new THREE.Mesh(
+
+new THREE.BoxGeometry(
+.18,
+.02,
+5
+),
+
+mats.yellow
+
+);
+
+line.position.set(
+0,
+.19,
+z
+);
+
+root.add(line);
+
+}
+
+for(
+let x=-52;
+x<60;
+x+=12
+){
+
+const line=
+new THREE.Mesh(
+
+new THREE.BoxGeometry(
+5,
+.02,
+.18
+),
+
+mats.yellow
+
+);
+
+line.position.set(
+x,
+.19,
+0
+);
+
+root.add(line);
+
+}
+
+const positions=[
+[-38,-38],
+[38,-38],
+[-38,38],
+[38,38]
+];
+
+positions.forEach(
+(p,i)=>{
+
+const r=
+hash(
+cx*7+i,
+cz*11-i
+);
+
+if(r<.48){
+
+const w=
+13+r*20;
+
+const d=
+13+
+hash(
+cx+i,
+cz-i
+)*18;
+
+const h=
+8+
+hash(
+cx*3+i,
+cz*5-i
+)*30;
+
+const b=
+new THREE.Mesh(
+
+new THREE.BoxGeometry(
+w,
+h,
+d
+),
+
+new THREE.MeshStandardMaterial({
+
+color:
+new THREE.Color()
+.setHSL(
+.55,
+.08,
+.3+r*.25
+),
+
+roughness:.8
+
+})
+
+);
+
+b.position.set(
+p[0],
+h/2,
+p[1]
+);
+
+b.castShadow=true;
+b.receiveShadow=true;
+
+root.add(b);
+
+}else{
+
+for(
+let t=0;
+t<3;
+t++
+){
+
+addTree(
+
+root,
+
+p[0]+
+(
+hash(
+cx+t+i,
+cz
+)-.5
+)*20,
+
+p[1]+
+(
+hash(
+cx,
+cz+t+i
+)-.5
+)*20
+
+);
+
+}
+
+}
+
+});
+
+if(
+hash(cx,cz)>.72
+){
+
+const ramp=
+new THREE.Mesh(
+
+new THREE.BoxGeometry(
+7,
+.8,
+11
+),
+
+mats.metal
+
+);
+
+ramp.rotation.x=-.18;
+
+ramp.position.set(
+hash(cx,cz)>.86?
+32:
+-32,
+.7,
+0
+);
+
+ramp.rotation.y=
+Math.PI/2;
+
+ramp.userData.used=false;
+
+root.add(ramp);
+
+ramps.push(ramp);
+
+}
+
+scene.add(root);
+
+chunks.set(
+chunkKey(cx,cz),
+root
+);
+
+}
+
+function addTree(
+root,
+x,
+z
+){
+
+const trunk=
+new THREE.Mesh(
+
+new THREE.CylinderGeometry(
+.5,
+.7,
+4,
+7
+),
+
+mats.trunk
+
+);
+
+trunk.position.set(
+x,
+2,
+z
+);
+
+root.add(trunk);
+
+const crown=
+new THREE.Mesh(
+
+new THREE.ConeGeometry(
+3.2,
+7,
+8
+),
+
+mats.tree
+
+);
+
+crown.position.set(
+x,
+6,
+z
+);
+
+root.add(crown);
+
+}
+
+function updateChunks(){
+
+const cx=
+Math.floor(
+player.position.x/
+CHUNK
+);
+
+const cz=
+Math.floor(
+player.position.z/
+CHUNK
+);
+
+for(
+let x=cx-VIEW;
+x<=cx+VIEW;
+x++
+){
+
+for(
+let z=cz-VIEW;
+z<=cz+VIEW;
+z++
+){
+
+const key=
+chunkKey(x,z);
+
+if(
+!chunks.has(key)
+){
+
+createChunk(
+x,
+z
+);
+
+}
+
+}
+
+}
+
+for(
+const[
+key,
+root
+]of chunks
+){
+
+const[
+x,
+z
+]=
+key
+.split(",")
+.map(Number);
+
+if(
+Math.abs(x-cx)>VIEW+1||
+Math.abs(z-cz)>VIEW+1
+){
+
+scene.remove(root);
+
+chunks.delete(key);
+
+}
+
+}
+
+}
+
+function updateRamps(){
+
+ramps.forEach(r=>{
+
+const world=
+new THREE.Vector3();
+
+r.getWorldPosition(world);
+
+const dist=
+world.distanceTo(
+player.position
+);
+
+if(
+dist<5&&
+physics.grounded&&
+!r.userData.used
+){
+
+r.userData.used=true;
+
+physics.verticalVelocity=
+(
+11+
+Math.min(
+physics.velocity.length()/14,
+6
+)
+)*
+jumpPower;
+
+physics.grounded=false;
+
+physics.airtime=0;
+
+physics.pitchVelocity=.5;
+
+showMessage(
+"RAMP LAUNCH!",
+"#ffea00"
+);
+
+}
+
+if(dist>20){
+
+r.userData.used=false;
+
+}
+
+});
+
+}
+
+/* =========================================================
+POLICE
+========================================================= */
+
+const cops=[];
+
+const COP_TYPES={
+
+patrol:{
+color:0xf5f5f5,
+maxSpeed:76,
+accel:25,
+turn:1.3,
+hp:75,
+damage:12,
+mass:1500,
+scale:1
+},
+
+interceptor:{
+color:0x20252b,
+maxSpeed:100,
+accel:33,
+turn:1.55,
+hp:60,
+damage:16,
+mass:1350,
+scale:.95
+},
+
+suv:{
+color:0x111820,
+maxSpeed:78,
+accel:22,
+turn:1.05,
+hp:160,
+damage:26,
+mass:2400,
+scale:1.2
+},
+
+armored:{
+color:0x37474f,
+maxSpeed:70,
+accel:18,
+turn:.85,
+hp:380,
+damage:40,
+mass:4200,
+scale:1.48
+}
+
+};
+
+const ROLE_OFFSETS={
+
+pursuer:{
+forward:-5,
+side:0,
+predict:.2
+},
+
+interceptor:{
+forward:20,
+side:0,
+predict:1.6
+},
+
+flankLeft:{
+forward:8,
+side:-15,
+predict:.8
+},
+
+flankRight:{
+forward:8,
+side:15,
+predict:.8
+},
+
+rammer:{
+forward:0,
+side:0,
+predict:.4
+}
+
+};
+
+function rolesForTier(){
+
+if(tier===1)
+return["pursuer"];
+
+if(tier===2)
+return[
+"pursuer",
+"interceptor"
+];
+
+if(tier===3)
+return[
+"pursuer",
+"interceptor",
+"flankLeft",
+"flankRight"
+];
+
+return[
+"pursuer",
+"interceptor",
+"flankLeft",
+"flankRight",
+"rammer"
+];
+
+}
+
+function chooseCopRole(){
+
+const roles=
+rolesForTier();
+
+const counts={};
+
+roles.forEach(r=>{
+counts[r]=0;
+});
+
+cops.forEach(c=>{
+
+if(
+counts[
+c.userData.role
+]!==undefined
+){
+
+counts[
+c.userData.role
+]++;
+
+}
+
+});
+
+return roles.sort(
+(a,b)=>
+counts[a]-
+counts[b]
+)[0];
+
+}
+
+function spawnCop(
+type="patrol"
+){
+
+const cfg=
+COP_TYPES[type];
+
+const car=
+makeCar(
+cfg.color,
+cfg.scale,
+true
+);
+
+const playerDir=
+playerForward();
+
+const side=
+playerRight();
+
+const behind=
+player.position
+.clone()
+.addScaledVector(
+playerDir,
+-110-
+Math.random()*40
+)
+.addScaledVector(
+side,
+(
+Math.random()-.5
+)*100
+);
+
+car.position.copy(
+behind
+);
+
+car.rotation.y=
+player.rotation.y;
+
+Object.assign(
+car.userData,
+{
+
+type,
+
+role:
+chooseCopRole(),
+
+speed:20,
+
+maxSpeed:
+cfg.maxSpeed,
+
+accel:
+cfg.accel,
+
+turn:
+cfg.turn,
+
+hp:
+cfg.hp,
+
+damage:
+cfg.damage,
+
+mass:
+cfg.mass,
+
+disabled:0,
+
+hitCooldown:0,
+
+lastPosition:
+car.position.clone(),
+
+stuckTimer:0
+
+}
+);
+
+scene.add(car);
+
+cops.push(car);
+
+}
+
+function copForward(c){
+
+return new THREE.Vector3(
+-Math.sin(c.rotation.y),
+0,
+-Math.cos(c.rotation.y)
+);
+
+}
+
+function getCopTarget(
+cop,
+index
+){
+
+const role=
+ROLE_OFFSETS[
+cop.userData.role
+];
+
+const forward=
+playerForward();
+
+const right=
+playerRight();
+
+const prediction=
+physics.velocity
+.clone()
+.multiplyScalar(
+role.predict*
+TIER_DATA[tier].accuracy
+);
+
+const target=
+player.position
+.clone()
+.add(prediction)
+.addScaledVector(
+forward,
+role.forward
+)
+.addScaledVector(
+right,
+role.side
+);
+
+const formationAngle=
+(
+index/
+Math.max(
+cops.length,
+1
+)
+)*
+Math.PI*
+2;
+
+target.x+=
+Math.cos(
+formationAngle
+)*3;
+
+target.z+=
+Math.sin(
+formationAngle
+)*3;
+
+return target;
+
+}
+
+function angleDifference(
+a,
+b
+){
+
+return Math.atan2(
+Math.sin(a-b),
+Math.cos(a-b)
+);
+
+}
+
+function updateCops(dt){
+
+for(
+let i=cops.length-1;
+i>=0;
+i--
+){
+
+const cop=cops[i];
+
+const u=
+cop.userData;
+
+if(u.hitCooldown>0)
+u.hitCooldown-=dt;
+
+if(u.disabled>0){
+
+u.disabled-=dt;
+
+u.speed*=
+Math.pow(
+.96,
+dt*60
+);
+
+cop.rotation.y+=
+.5*dt;
+
+cop.position.addScaledVector(
+copForward(cop),
+u.speed*dt
+);
+
+continue;
+
+}
+
+const target=
+getCopTarget(
+cop,
+i
+);
+
+const to=
+target
+.clone()
+.sub(
+cop.position
+);
+
+const desired=
+Math.atan2(
+-to.x,
+-to.z
+);
+
+const error=
+angleDifference(
+desired,
+cop.rotation.y
+);
+
+const severity=
+Math.abs(error);
+
+let targetSpeed=
+u.maxSpeed*
+THREE.MathUtils.lerp(
+1,
+.25,
+Math.min(
+severity/
+Math.PI,
+1
+)
+);
+
+if(severity>2.2){
+
+targetSpeed=
+Math.min(
+targetSpeed,
+12
+);
+
+}
+
+if(
+u.speed<
+targetSpeed
+){
+
+u.speed=
+Math.min(
+targetSpeed,
+u.speed+
+u.accel*dt
+);
+
+}else{
+
+u.speed=
+Math.max(
+targetSpeed,
+u.speed-
+u.accel*
+1.4*
+dt
+);
+
+}
+
+const steering=
+THREE.MathUtils.clamp(
+error,
+-1,
+1
+);
+
+const turnFactor=
+.45+
+.55*
+(
+1-
+Math.min(
+u.speed/
+u.maxSpeed,
+1
+)
+);
+
+cop.rotation.y+=
+steering*
+u.turn*
+turnFactor*
+dt;
+
+cop.position.addScaledVector(
+copForward(cop),
+u.speed*dt
+);
+
+const distance=
+cop.position.distanceTo(
+player.position
+);
+
+if(
+distance<3.4&&
+physics.height<1.3&&
+u.hitCooldown<=0
+){
+
+u.hitCooldown=1;
+
+resolveVehicleCollision(
+cop
+);
+
+}
+
+if(u.hp<=0){
+
+destroyCop(
+cop,
+i
+);
+
+continue;
+
+}
+
+if(distance>600){
+
+scene.remove(cop);
+
+cops.splice(
+i,
+1
+);
+
+}
+
+}
+
+}
+
+function resolveVehicleCollision(cop){
+
+const u=
+cop.userData;
+
+const collisionNormal=
+player.position
+.clone()
+.sub(
+cop.position
+)
+.normalize();
+
+const playerSpeed=
+physics.velocity.length();
+
+const relativeSpeed=
+playerSpeed+
+u.speed;
+
+const totalMass=
+physics.mass+
+u.mass;
+
+const playerImpulse=
+u.mass/
+totalMass*
+relativeSpeed;
+
+if(shieldActive){
+
+u.hp-=
+100*
+ramPower;
+
+showMessage(
+"SHIELD IMPACT!",
+"#00e5ff"
+);
+
+}else{
+
+physics.velocity.addScaledVector(
+collisionNormal,
+playerImpulse*.35
+);
+
+const collisionDamage=
+u.damage*
+THREE.MathUtils.clamp(
+relativeSpeed/45,
+.4,
+1.7
+);
+
+damage(
+collisionDamage
+);
+
+}
+
+cameraShake+=
+Math.min(
+.6,
+relativeSpeed/100
+);
+
+}
+
+function destroyCop(
+cop,
+index
+){
+
+addScore(
+3000*
+combo
+);
+
+increaseCombo(1);
+
+policeDestroyed++;
+
+spawnExplosionSmoke(
+cop.position
+);
+
+scene.remove(cop);
+
+cops.splice(
+index,
+1
+);
+
+showMessage(
+"POLICE TAKEDOWN!",
+"#ff1744"
+);
+
+}
+
+/* =========================================================
+HELICOPTER
+========================================================= */
+
+let helicopter=null;
+
+function updateHelicopter(dt){
+
+if(
+!TIER_DATA[tier].heli
+){
+
+if(helicopter){
+
+scene.remove(
+helicopter
+);
+
+helicopter=null;
+
+}
+
+return;
+
+}
+
+if(!helicopter){
+
+helicopter=
+new THREE.Group();
+
+const body=
+new THREE.Mesh(
+
+new THREE.BoxGeometry(
+4,
+1.5,
+7
+),
+
+new THREE.MeshStandardMaterial({
+color:0x15191d,
+metalness:.6
+})
+
+);
+
+helicopter.add(
+body
+);
+
+const rotor=
+new THREE.Mesh(
+
+new THREE.BoxGeometry(
+12,
+.08,
+.25
+),
+
+mats.black
+
+);
+
+rotor.position.y=1.2;
+
+helicopter.add(
+rotor
+);
+
+helicopter.userData.rotor=
+rotor;
+
+scene.add(
+helicopter
+);
+
+}
+
+const target=
+player.position
+.clone()
+.addScaledVector(
+playerRight(),
+20
+)
+.add(
+new THREE.Vector3(
+0,
+30,
+0
+)
+);
+
+helicopter.position.lerp(
+target,
+1-Math.pow(.03,dt)
+);
+
+helicopter
+.userData
+.rotor
+.rotation.y+=
+25*dt;
+
+}
+
+/* =========================================================
+TRAFFIC
+========================================================= */
+
+const traffic=[];
+
+function spawnTraffic(){
+
+if(
+traffic.length>20
+)return;
+
+const cx=
+Math.round(
+player.position.x/
+CHUNK
+)*
+CHUNK;
+
+const cz=
+Math.round(
+player.position.z/
+CHUNK
+)*
+CHUNK;
+
+const horizontal=
+Math.random()<.5;
+
+const car=
+makeCar(
+[
+0x2196f3,
+0xffeb3b,
+0xffffff,
+0x4caf50,
+0xff5722
+][
+Math.floor(
+Math.random()*5
+)
+],
+.9
+);
+
+if(horizontal){
+
+car.position.set(
+
+player.position.x+
+(
+Math.random()-.5
+)*240,
+
+0,
+
+cz+
+(
+Math.random()<.5?
+-4:
+4
+)
+
+);
+
+car.rotation.y=
+Math.random()<.5?
+Math.PI/2:
+-Math.PI/2;
+
+}else{
+
+car.position.set(
+
+cx+
+(
+Math.random()<.5?
+-4:
+4
+),
+
+0,
+
+player.position.z+
+(
+Math.random()-.5
+)*240
+
+);
+
+car.rotation.y=
+Math.random()<.5?
+0:
+Math.PI;
+
+}
+
+car.userData.speed=
+15+
+Math.random()*20;
+
+car.userData.near=false;
+
+car.userData.hit=false;
+
+scene.add(car);
+
+traffic.push(car);
+
+}
+
+function updateTraffic(dt){
+
+if(
+Math.random()<
+dt*2
+){
+
+spawnTraffic();
+
+}
+
+for(
+let i=traffic.length-1;
+i>=0;
+i--
+){
+
+const car=
+traffic[i];
+
+car.position.addScaledVector(
+copForward(car),
+car.userData.speed*
+dt
+);
+
+const dist=
+car.position.distanceTo(
+player.position
+);
+
+if(
+dist<3.2&&
+physics.height<1.2&&
+!car.userData.hit
+){
+
+car.userData.hit=true;
+
+if(shieldActive){
+
+car.position.addScaledVector(
+
+car.position
+.clone()
+.sub(
+player.position
+)
+.normalize(),
+
+10
+
+);
+
+}else{
+
+damage(17);
+
+physics.velocity.multiplyScalar(
+.72
+);
+
+cameraShake+=.3;
+
+}
+
+}
+
+if(
+dist>3.1&&
+dist<5.5&&
+!car.userData.near&&
+physics.velocity.length()>20
+){
+
+car.userData.near=true;
+
+nearMisses++;
+
+const multiplier=
+1+
+Math.min(
+physics.velocity.length()/45,
+2
+);
+
+const reward=
+Math.round(
+700*
+multiplier*
+combo
+);
+
+addScore(reward);
+
+increaseCombo(
+.5*
+multiplier
+);
+
+nitro=
+Math.min(
+maxNitro,
+nitro+14
+);
+
+showMessage(
+`NEAR MISS x${multiplier.toFixed(1)} +${reward}`,
+"#ffea00"
+);
+
+}
+
+if(dist>400){
+
+scene.remove(car);
+
+traffic.splice(
+i,
+1
+);
+
+}
+
+}
+
+}
+
+/* =========================================================
+PARTICLES
+========================================================= */
+
+const particles=[];
+const trails=[];
+
+function particle(
+position,
+color,
+size=1,
+life=1,
+velocity=
+new THREE.Vector3()
+){
+
+const material=
+new THREE.MeshBasicMaterial({
+
+color,
+
+transparent:true,
+
+opacity:.65,
+
+depthWrite:false
+
+});
+
+const mesh=
+new THREE.Mesh(
+
+new THREE.SphereGeometry(
+size,
+6,
+6
+),
+
+material
+
+);
+
+mesh.position.copy(
+position
+);
+
+scene.add(mesh);
+
+particles.push({
+
+mesh,
+
+life,
+
+maxLife:life,
+
+velocity
+
+});
+
+}
+
+function updateParticles(dt){
+
+for(
+let i=particles.length-1;
+i>=0;
+i--
+){
+
+const p=
+particles[i];
+
+p.life-=dt;
+
+p.mesh.position.addScaledVector(
+p.velocity,
+dt
+);
+
+p.mesh.scale.multiplyScalar(
+1+
+dt*.8
+);
+
+p.mesh.material.opacity=
+Math.max(
+0,
+p.life/
+p.maxLife*
+.65
+);
+
+if(p.life<=0){
+
+scene.remove(
+p.mesh
+);
+
+p.mesh.material.dispose();
+
+particles.splice(
+i,
+1
+);
+
+}
+
+}
+
+}
+
+function rearPoint(side=0){
+
+return player.position
+.clone()
+.addScaledVector(
+playerForward(),
+-2
+)
+.addScaledVector(
+playerRight(),
+side
+)
+.add(
+new THREE.Vector3(
+0,
+.3,
+0
+)
+);
+
+}
+
+function spawnTireSmoke(){
+
+if(
+Math.random()>.4
+)return;
+
+[-.9,.9].forEach(
+side=>{
+
+particle(
+rearPoint(side),
+0xc5c8ca,
+.25+
+Math.random()*.25,
+.8,
+new THREE.Vector3(
+(Math.random()-.5)*.5,
+.6,
+(Math.random()-.5)*.5
+)
+);
+
+}
+);
+
+}
+
+function spawnDust(type){
+
+if(
+Math.random()>.35
+)return;
+
+particle(
+
+rearPoint(
+(Math.random()-.5)*1.8
+),
+
+type==="DIRT"?
+0xa9875b:
+0x87906a,
+
+.3+
+Math.random()*.35,
+
+.9,
+
+new THREE.Vector3(
+(Math.random()-.5),
+.5,
+(Math.random()-.5)
+)
+
+);
+
+}
+
+function spawnEngineSmoke(){
+
+particle(
+
+player.position
+.clone()
+.add(
+new THREE.Vector3(
+0,
+1.4,
+0
+)
+)
+.addScaledVector(
+playerForward(),
+1.3
+),
+
+0x444444,
+
+.3+
+Math.random()*.3,
+
+1.5,
+
+new THREE.Vector3(
+(Math.random()-.5)*.3,
+1,
+(Math.random()-.5)*.3
+)
+
+);
+
+}
+
+function spawnNitro(){
+
+if(
+Math.random()>.55
+)return;
+
+particle(
+
+rearPoint(
+(Math.random()-.5)*.7
+),
+
+0x00aaff,
+
+.18+
+Math.random()*.15,
+
+.3,
+
+playerForward()
+.multiplyScalar(
+-10
+)
+
+);
+
+}
+
+function spawnExplosionSmoke(pos){
+
+for(
+let i=0;
+i<20;
+i++
+){
+
+particle(
+
+pos.clone().add(
+
+new THREE.Vector3(
+(Math.random()-.5)*3,
+1+
+Math.random()*2,
+(Math.random()-.5)*3
+)
+
+),
+
+i<6?
+0xff6d00:
+0x333333,
+
+.35+
+Math.random()*.6,
+
+1+
+Math.random()*1.5,
+
+new THREE.Vector3(
+(Math.random()-.5)*3,
+1+
+Math.random()*3,
+(Math.random()-.5)*3
+)
+
+);
+
+}
+
+}
+
+function addSkidMarks(){}
+
+/* =========================================================
+ABILITIES
+========================================================= */
+
+function useEMP(){
+
+if(empCooldown>0)
+return;
+
+empCooldown=7;
+
+showMessage(
+"EMP PULSE!",
+"#00e5ff"
+);
+
+cops.forEach(c=>{
+
+if(
+c.position.distanceTo(
+player.position
+)<
+empRange
+){
+
+c.userData.disabled=3;
+
+c.userData.hp-=
+45*
+ramPower;
+
+}
+
+});
+
+}
+
+function useShield(){
+
+if(
+shieldCooldown>0||
+shieldActive
+)
+return;
+
+shieldActive=true;
+
+shieldTimer=4;
+
+shieldCooldown=14;
+
+showMessage(
+"IMPACT SHIELD",
+"#00e5ff"
+);
+
+}
+
+function updateAbilities(dt){
+
+empCooldown=
+Math.max(
+0,
+empCooldown-dt
+);
+
+shieldCooldown=
+Math.max(
+0,
+shieldCooldown-dt
+);
+
+if(shieldActive){
+
+shieldTimer-=dt;
+
+if(
+shieldTimer<=0
+){
+
+shieldActive=false;
+
+}
+
+}
+
+}
+
+/* =========================================================
+TIERS
+========================================================= */
+
+function calculateTier(){
+
+const pursuitPoints=
+
+totalDistance/1200+
+
+policeDestroyed*1.3+
+
+score/25000;
+
+let target=1;
+
+if(pursuitPoints>4)target=2;
+if(pursuitPoints>9)target=3;
+if(pursuitPoints>16)target=4;
+if(pursuitPoints>26)target=5;
+if(pursuitPoints>40)target=6;
+
+if(target>tier){
+
+tier=target;
+
+maxTier=
+Math.max(
+maxTier,
+tier
+);
+
+showTierCinema();
+
+}
+
+}
+
+function showTierCinema(){
+
+UI.cinemaTier.textContent=
+`TIER ${tier}`;
+
+UI.cinemaName.textContent=
+TIER_DATA[tier].name;
+
+UI.tierCinema.classList.add(
+"show"
+);
+
+triggerSlowMotion(
+.25,
+1.4
+);
+
+setTimeout(()=>{
+
+UI.tierCinema.classList.remove(
+"show"
+);
+
+},1500);
+
+}
+
+function updateEscape(dt){
+
+const nearest=
+cops.length?
+
+Math.min(
+...cops.map(
+c=>
+c.position.distanceTo(
+player.position
+)
+)
+):
+
+Infinity;
+
+if(
+cops.length===0||
+nearest>130
+){
+
+escapeProgress+=dt;
+
+}else if(
+nearest<80
+){
+
+escapeProgress=
+Math.max(
+0,
+escapeProgress-
+dt*1.5
+);
+
+}
+
+if(
+escapeProgress>=12
+){
+
+escapeProgress=0;
+
+if(tier>1){
+
+tier--;
+
+showMessage(
+`ESCAPED · HEAT REDUCED TO TIER ${tier}`,
+"#00e676"
+);
+
+}
+
+}
+
+}
+
+function updatePoliceSpawning(dt){
+
+calculateTier();
+
+updateEscape(dt);
+
+copSpawnTimer-=dt;
+
+if(
+copSpawnTimer<=0&&
+cops.length<
+TIER_DATA[tier].maxCops
+){
+
+copSpawnTimer=
+TIER_DATA[tier].spawn+
+Math.random()*2;
+
+let type="patrol";
+
+const r=Math.random();
+
+if(
+tier>=5&&
+r<.18
+)
+type="armored";
+
+else if(
+tier>=3&&
+r<.42
+)
+type="suv";
+
+else if(
+tier>=2&&
+r<.7
+)
+type="interceptor";
+
+spawnCop(type);
+
+}
+
+}
+
+/* =========================================================
+SCORE
+========================================================= */
+
+function damage(amount){
+
+if(shieldActive)return;
+
+health-=amount;
+
+combo=1;
+comboTimer=0;
+
+cameraShake+=.3;
+
+UI.damage.style.background=
+"#ff002855";
+
+setTimeout(()=>{
+
+UI.damage.style.background=
+"#ff002800";
+
+},100);
+
+if(health<=0){
+
+endGame();
+
+}
+
+}
+
+function addScore(value){
+
+score+=
+Math.round(value);
+
+}
+
+function increaseCombo(value){
+
+combo=
+Math.min(
+25,
+combo+value
+);
+
+comboTimer=5;
+
+}
+
+function updateCombo(dt){
+
+if(comboTimer>0){
+
+comboTimer-=dt;
+
+}else{
+
+combo=
+Math.max(
+1,
+combo-
+dt*1.2
+);
+
+}
+
+}
+
+/* =========================================================
+SLOW MOTION
+========================================================= */
+
+function triggerSlowMotion(
+scale,
+duration
+){
+
+slowMotion=scale;
+slowMotionTimer=duration;
+
+}
+
+function updateSlowMotion(realDt){
+
+if(
+slowMotionTimer>0
+){
+
+slowMotionTimer-=realDt;
+
+if(
+slowMotionTimer<=0
+){
+
+slowMotion=1;
+
+}
+
+}
+
+}
+
+/* =========================================================
+CAMERA
+========================================================= */
+
+const cameraModes=[
+
+{
+name:"CHASE",
+offset:new THREE.Vector3(
+0,
+4.5,
+10
+),
+look:12,
+fov:68
+},
+
+{
+name:"LOW ACTION",
+offset:new THREE.Vector3(
+-4,
+2,
+8
+),
+look:15,
+fov:75
+},
+
+{
+name:"HOOD",
+offset:new THREE.Vector3(
+0,
+1.9,
+-1
+),
+look:30,
+fov:82
+},
+
+{
+name:"BUMPER",
+offset:new THREE.Vector3(
+0,
+.9,
+-2.5
+),
+look:40,
+fov:86
+},
+
+{
+name:"HELICOPTER",
+offset:new THREE.Vector3(
+0,
+23,
+15
+),
+look:10,
+fov:62
+},
+
+{
+name:"FAR CHASE",
+offset:new THREE.Vector3(
+0,
+8,
+19
+),
+look:15,
+fov:70
+}
+
+];
+
+function switchCamera(){
+
+cameraMode=
+(
+cameraMode+1
+)%
+cameraModes.length;
+
+UI.camera.textContent=
+cameraModes[cameraMode].name+
+" CAMERA";
+
+UI.camera.style.opacity=1;
+
+setTimeout(()=>{
+
+UI.camera.style.opacity=0;
+
+},900);
+
+}
+
+function updateCamera(dt){
+
+const mode=
+cameraModes[cameraMode];
+
+const forward=
+playerForward();
+
+const right=
+playerRight();
+
+const offset=
+player.position
+.clone()
+.addScaledVector(
+right,
+mode.offset.x
+)
+.add(
+new THREE.Vector3(
+0,
+mode.offset.y,
+0
+)
+)
+.addScaledVector(
+forward,
+-mode.offset.z
+);
+
+camera.position.lerp(
+offset,
+1-Math.pow(.0005,dt)
+);
+
+const speedFactor=
+THREE.MathUtils.clamp(
+physics.velocity.length()/100,
+0,
+1
+);
+
+cameraShake+=
+speedFactor*.0004;
+
+if(cameraShake>.001){
+
+camera.position.x+=
+(Math.random()-.5)*
+cameraShake;
+
+camera.position.y+=
+(Math.random()-.5)*
+cameraShake;
+
+camera.position.z+=
+(Math.random()-.5)*
+cameraShake*.4;
+
+cameraShake*=
+Math.pow(.05,dt);
+
+}
+
+const target=
+player.position
+.clone()
+.add(
+new THREE.Vector3(
+0,
+1,
+0
+)
+)
+.addScaledVector(
+forward,
+mode.look
+);
+
+camera.lookAt(target);
+
+const targetFov=
+
+mode.fov+
+
+speedFactor*10+
+
+(
+keys["shift"]?
+5:
+0
+);
+
+camera.fov=
+THREE.MathUtils.lerp(
+camera.fov,
+targetFov,
+1-Math.pow(.001,dt)
+);
+
+camera.updateProjectionMatrix();
+
+}
+
+/* =========================================================
+MINIMAP
+========================================================= */
+
+const map=$("map");
+
+const ctx=
+map.getContext("2d");
+
+function updateMinimap(){
+
+ctx.clearRect(
+0,
+0,
+180,
+180
+);
+
+ctx.fillStyle=
+"#081018";
+
+ctx.fillRect(
+0,
+0,
+180,
+180
+);
+
+ctx.save();
+
+ctx.translate(
+90,
+90
+);
+
+ctx.rotate(
+player.rotation.y
+);
+
+const scale=.35;
+
+ctx.strokeStyle=
+"#53616b";
+
+ctx.lineWidth=7;
+
+for(
+let x=-360;
+x<=360;
+x+=CHUNK
+){
+
+const px=
+(
+x-
+player.position.x
+)*
+scale;
+
+ctx.beginPath();
+
+ctx.moveTo(
+px,
+-180
+);
+
+ctx.lineTo(
+px,
+180
+);
+
+ctx.stroke();
+
+}
+
+for(
+let z=-360;
+z<=360;
+z+=CHUNK
+){
+
+const pz=
+(
+z-
+player.position.z
+)*
+scale;
+
+ctx.beginPath();
+
+ctx.moveTo(
+-180,
+pz
+);
+
+ctx.lineTo(
+180,
+pz
+);
+
+ctx.stroke();
+
+}
+
+cops.forEach(c=>{
+
+const x=
+(
+c.position.x-
+player.position.x
+)*
+scale;
+
+const z=
+(
+c.position.z-
+player.position.z
+)*
+scale;
+
+ctx.fillStyle=
+"#ff1744";
+
+ctx.beginPath();
+
+ctx.arc(
+x,
+z,
+4,
+0,
+Math.PI*2
+);
+
+ctx.fill();
+
+});
+
+ctx.restore();
+
+ctx.fillStyle=
+"#00e5ff";
+
+ctx.beginPath();
+
+ctx.moveTo(
+90,
+78
+);
+
+ctx.lineTo(
+84,
+98
+);
+
+ctx.lineTo(
+96,
+98
+);
+
+ctx.closePath();
+
+ctx.fill();
+
+}
+
+/* =========================================================
+HUD
+========================================================= */
+
+function updateHUD(){
+
+const forwardSpeed=
+physics.velocity.dot(
+playerForward()
+);
+
+const kmh=
+Math.abs(
+forwardSpeed
+)*
+3.6;
+
+const gear=
+Math.max(
+1,
+Math.min(
+6,
+Math.floor(
+kmh/50
+)+1
+)
+);
+
+UI.speed.textContent=
+Math.round(kmh);
+
+UI.gear.textContent=
+forwardSpeed<-.5?
+"REVERSE":
+`GEAR ${gear}`;
+
+UI.hp.style.width=
+Math.max(
+0,
+health/maxHealth*100
+)+"%";
+
+UI.nitro.style.width=
+Math.max(
+0,
+nitro/maxNitro*100
+)+"%";
+
+UI.escape.style.width=
+Math.min(
+100,
+escapeProgress/12*100
+)+"%";
+
+UI.tier.textContent=
+`TIER ${tier} · ${TIER_DATA[tier].name}`;
+
+UI.heat.textContent=
+"★".repeat(tier)+
+"☆".repeat(6-tier);
+
+UI.score.textContent=
+Math.round(score)
+.toString()
+.padStart(
+8,
+"0"
+);
+
+UI.combo.textContent=
+"x"+
+combo.toFixed(1);
+
+UI.drift.textContent=
+drifting?
+`DRIFT ${Math.round(currentDriftScore)}`:
+"";
+
+UI.emp.textContent=
+empCooldown>0?
+`EMP ${empCooldown.toFixed(1)}s`:
+"EMP READY";
+
+UI.shield.textContent=
+shieldActive?
+`SHIELD ${shieldTimer.toFixed(1)}s`:
+
+shieldCooldown>0?
+`SHIELD ${shieldCooldown.toFixed(1)}s`:
+
+"SHIELD READY";
+
+}
+
+/* =========================================================
+MESSAGES
+========================================================= */
+
+let messageTimer;
+
+function showMessage(
+text,
+color="#fff"
+){
+
+UI.message.textContent=
+text;
+
+UI.message.style.color=
+color;
+
+UI.message.style.opacity=1;
+
+clearTimeout(
+messageTimer
+);
+
+messageTimer=
+setTimeout(()=>{
+
+UI.message.style.opacity=0;
+
+},1000);
+
+}
+
+/* =========================================================
+MENUS
+========================================================= */
+
+$("playBtn").onclick=()=>{
+
+UI.title.style.display=
+"none";
+
+started=true;
+
+physics.velocity
+.copy(
+playerForward()
+)
+.multiplyScalar(
+8
+);
+
+updateChunks();
+
+showMessage(
+"ESCAPE!",
+"#ff1744"
+);
+
+setTimeout(()=>{
+
+spawnCop(
+"patrol"
+);
+
+},1000);
+
+};
+
+function togglePause(){
+
+paused=
+!paused;
+
+UI.pause.style.display=
+paused?
+"flex":
+"none";
+
+}
+
+$("resumeBtn").onclick=
+togglePause;
+
+function endGame(){
+
+ended=true;
+
+UI.gameOver.style.display=
+"flex";
+
+$("stats").innerHTML=`
+
+DISTANCE:
+${(
+totalDistance/1000
+).toFixed(2)} KM
+
+<br>
+
+SCORE:
+${Math.round(score).toLocaleString()}
+
+<br>
+
+NEAR MISSES:
+${nearMisses}
+
+<br>
+
+POLICE TAKEDOWNS:
+${policeDestroyed}
+
+<br>
+
+MAXIMUM TIER:
+${maxTier}
+·
+${TIER_DATA[maxTier].name}
+
+`;
+
+}
+
+$("restartBtn").onclick=
+()=>location.reload();
+
+/* =========================================================
+MAIN LOOP
+========================================================= */
+
+const clock=
+new THREE.Clock();
+
+function animate(){
+
+requestAnimationFrame(
+animate
+);
+
+const realDt=
+Math.min(
+clock.getDelta(),
+.033
+);
+
+updateSlowMotion(
+realDt
+);
+
+const dt=
+realDt*
+slowMotion;
+
+elapsed+=dt;
+
+if(
+started&&
+!paused&&
+!upgradePaused&&
+!ended
+){
+
+updatePlayer(dt);
+
+updateChunks();
+
+updateRamps();
+
+updateCops(dt);
+
+updateTraffic(dt);
+
+updateHelicopter(dt);
+
+updateParticles(dt);
+
+updateAbilities(dt);
+
+updatePoliceSpawning(dt);
+
+updateCombo(dt);
+
+score+=
+physics.velocity.length()*
+dt*
+.45*
+combo;
+
+}
+
+updateCamera(
+realDt
+);
+
+updateHUD();
+
+updateMinimap();
+
+renderer.render(
+scene,
+camera
+);
+
+}
+
+animate();
+
+addEventListener(
+"resize",
+()=>{
+
+camera.aspect=
+innerWidth/
+innerHeight;
+
+camera.updateProjectionMatrix();
+
+renderer.setSize(
+innerWidth,
+innerHeight
+);
+
+}
+);
+
+</script>
+</body>
+</html>

@@ -1,0 +1,3305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Driftwood — a tiny fishing game</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#10142a; --panel:#1b2240; --panel2:#242e54; --edge:#3c4a7c;
+    --paper:#e8e0c8; --gold:#f2c14e; --green:#7dc95e; --red:#e0604c;
+    --blue:#6ab0d8; --dim:#8a94b8; --purple:#b07ddb;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    background:#0a0d1e;
+    background-image:
+      radial-gradient(circle at 20% 10%, #131a38 0 2px, transparent 2px),
+      radial-gradient(circle at 70% 60%, #131a38 0 2px, transparent 2px);
+    background-size:90px 90px, 130px 130px;
+    color:var(--paper);
+    font-family:'Press Start 2P', monospace;
+    display:flex; align-items:center; justify-content:center;
+    overflow:hidden;
+  }
+  #app{
+    width:min(96vw, calc(92vh * 16 / 9));
+    display:flex; flex-direction:column; gap:8px;
+  }
+  /* ---------- HUD ---------- */
+  #hud{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    background:var(--panel); border:3px solid var(--edge);
+    box-shadow:0 4px 0 #000a; padding:8px 10px; font-size:10px;
+    image-rendering:pixelated;
+  }
+  .hudchip{display:flex; align-items:center; justify-content:center; gap:6px; min-height:32px; padding:6px 8px 5px; background:var(--ink); border:2px solid var(--edge); line-height:1.2; white-space:nowrap;}
+  #coinChip{color:var(--gold);}
+  #locChip{color:var(--blue);}
+  #timeChip{color:var(--paper);}
+  #hud .spacer{flex:1;}
+  button{
+    font-family:inherit; font-size:9px; color:var(--paper);
+    background:var(--panel2); border:2px solid var(--edge);
+    border-bottom-width:4px; min-height:32px; padding:6px 9px 5px; cursor:pointer;
+    display:inline-flex; align-items:center; justify-content:center; line-height:1.2; white-space:nowrap;
+    text-shadow:1px 1px 0 #0008;
+  }
+  button:hover{background:#2e3a68; transform:translateY(-1px);}
+  button:active{border-bottom-width:2px; transform:translateY(2px);}
+  button.gold{background:#4a3a12; border-color:#8a6e22; color:var(--gold);}
+  button.gold:hover{background:#5c4a18;}
+  button:disabled{opacity:.45; cursor:default; transform:none;}
+  /* ---------- Stage ---------- */
+  #stage{
+    position:relative; width:100%; aspect-ratio:16/9;
+    border:3px solid var(--edge); box-shadow:0 6px 0 #000a;
+    background:#000; overflow:hidden;
+  }
+  canvas{image-rendering:pixelated; image-rendering:crisp-edges;}
+  #scene{position:absolute; inset:0; width:100%; height:100%; cursor:pointer; touch-action:none;}
+  #hint{
+    position:absolute; left:50%; bottom:6%; transform:translateX(-50%);
+    font-size:10px; color:#fff; text-shadow:2px 2px 0 #000;
+    background:#000a; padding:6px 10px; border:2px solid #fff3;
+    pointer-events:none; white-space:nowrap; max-width:95%;
+  }
+  /* ---------- Bottom bar ---------- */
+  #bottomBar{
+    display:flex; align-items:center; gap:8px; flex-wrap:wrap;
+    background:var(--panel); border:3px solid var(--edge);
+    box-shadow:0 4px 0 #000a; padding:8px 10px; font-size:9px;
+  }
+  select{
+    font-family:inherit; font-size:9px; color:var(--paper);
+    background:var(--ink); border:2px solid var(--edge); min-height:32px; padding:6px 8px; line-height:1.2;
+  }
+  label.sel{display:flex; align-items:center; gap:6px; color:var(--dim); line-height:1.2; white-space:nowrap;}
+  /* ---------- Modals ---------- */
+  #shade{
+    position:fixed; inset:0; background:#05071adb; display:none;
+    align-items:center; justify-content:center; z-index:50; padding:18px;
+  }
+  #shade.open{display:flex;}
+  .modal{
+    width:min(720px, 96vw); max-height:88vh; overflow:auto;
+    background:var(--panel); border:3px solid var(--edge);
+    box-shadow:0 8px 0 #000c; padding:14px; display:none;
+    scrollbar-width:thin; scrollbar-color:var(--edge) var(--ink);
+  }
+  .modal.open{display:block;}
+  .mhead{display:flex; align-items:center; gap:10px; margin-bottom:12px;}
+  .mhead h2{font-size:13px; color:var(--gold); text-shadow:2px 2px 0 #000;}
+  .mhead .sub{font-size:8px; color:var(--dim);}
+  .mhead .x{margin-left:auto;}
+  .tabs{display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap;}
+  .tabs button.on{background:#3a4878; border-color:#6a7ec0; color:#fff;}
+  /* shop rows */
+  .item{
+    display:flex; gap:10px; align-items:center;
+    background:var(--ink); border:2px solid var(--edge);
+    padding:8px; margin-bottom:8px; font-size:9px;
+  }
+  .item .ic{width:34px; height:34px; flex:none; background:var(--panel2); border:2px solid var(--edge); display:flex; align-items:center; justify-content:center; font-size:16px;}
+  .item .nm{color:#fff; font-size:10px; margin-bottom:4px;}
+  .item .ds{color:var(--dim); line-height:1.5;}
+  .item .own{color:var(--green); font-size:8px;}
+  .item .buyc{margin-left:auto; flex:none; text-align:right;}
+  .price{color:var(--gold); font-size:9px; margin-bottom:5px;}
+  /* dex */
+  #dexGrid{display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:8px;}
+  .dexcard{background:var(--ink); border:2px solid var(--edge); padding:8px; font-size:8px;}
+  .dexcard.caught{border-color:#5a7c4a;}
+  .dexcard .top{display:flex; gap:8px; align-items:center;}
+  .dexcard canvas{width:72px; height:40px; flex:none; background:#0a0e22; border:2px solid var(--edge);}
+  .dexcard .nm{font-size:9px; color:#fff; margin-bottom:4px; line-height:1.3;}
+  .dexcard .nm.unk{color:var(--dim);}
+  .stars{color:var(--gold); letter-spacing:1px;}
+  .dexcard .meta{color:var(--dim); line-height:1.7; margin-top:6px;}
+  .dexcard .fl{color:#b8c0da; line-height:1.6; margin-top:6px; font-style:normal;}
+  .dexbar{font-size:9px; color:var(--dim); margin-bottom:10px;}
+  .dexbar b{color:var(--green);}
+  /* achievements */
+  .ach{display:flex; gap:10px; align-items:center; background:var(--ink); border:2px solid var(--edge); padding:8px; margin-bottom:8px; font-size:9px;}
+  .ach .ic{font-size:18px; width:30px; text-align:center; flex:none; filter:grayscale(1) brightness(.5);}
+  .ach.done .ic{filter:none;}
+  .ach .nm{color:var(--dim); font-size:10px; margin-bottom:4px;}
+  .ach.done .nm{color:var(--gold);}
+  .ach .ds{color:var(--dim); line-height:1.5;}
+  .ach .st{margin-left:auto; flex:none; font-size:8px; color:var(--dim);}
+  .ach.done .st{color:var(--green);}
+  /* travel */
+  .locrow{display:flex; gap:10px; align-items:center; background:var(--ink); border:2px solid var(--edge); padding:10px; margin-bottom:8px; font-size:9px;}
+  .locrow .sw{width:44px; height:30px; flex:none; border:2px solid var(--edge);}
+  .locrow .nm{font-size:10px; color:#fff; margin-bottom:4px;}
+  .locrow .ds{color:var(--dim); line-height:1.5;}
+  .locrow .act{margin-left:auto; flex:none; text-align:right;}
+  .locrow.here{border-color:#5a7c4a;}
+  /* catch modal */
+  #catchModal{width:min(440px,94vw); text-align:center;}
+  #catchModal h2{font-size:12px; color:#fff; margin:8px 0 2px;}
+  #newBadge{display:inline-block; background:var(--red); color:#fff; font-size:8px; padding:4px 6px; margin-bottom:6px; box-shadow:2px 2px 0 #000;}
+  #catchCanvas{width:280px; height:140px; background:#0c1228; border:3px solid var(--edge); margin:6px auto; display:block;}
+  #catchStars{font-size:11px; margin:4px 0;}
+  #catchInfo{font-size:9px; color:var(--dim); line-height:1.8; margin:6px 0;}
+  #catchInfo b{color:var(--gold);}
+  #catchFlavor{font-size:8px; color:#b8c0da; line-height:1.7; margin:8px 0 12px; padding:0 8px;}
+  .recordTag{color:var(--green);}
+  /* help */
+  #helpModal .hp{font-size:9px; line-height:2; color:#c8d0e8; margin-bottom:10px;}
+  #helpModal .hp b{color:var(--gold);}
+  /* toasts */
+  #toasts{position:fixed; top:14px; right:14px; z-index:90; display:flex; flex-direction:column; gap:8px; pointer-events:none;}
+  .toast{
+    background:var(--panel2); border:2px solid var(--gold); color:var(--paper);
+    font-size:9px; padding:9px 12px; box-shadow:0 4px 0 #000c;
+    animation:tin .25s steps(4) both, tout .4s steps(4) 3.6s both;
+    max-width:300px; line-height:1.6;
+  }
+  .toast.ach{border-color:var(--purple);}
+  .toast b{color:var(--gold);}
+  @keyframes tin{from{transform:translateX(40px); opacity:0;} to{transform:none; opacity:1;}}
+  @keyframes tout{to{transform:translateX(40px); opacity:0;}}
+  @media (prefers-reduced-motion:reduce){ .toast{animation:none;} }
+  /* requests */
+  .qcard{display:flex; gap:10px; align-items:center; background:var(--panel2);
+    border:2px solid var(--edge); padding:9px 10px; margin-bottom:8px;}
+  .qcard.done{border-color:var(--green);}
+  .qcard.claimed{opacity:.45;}
+  .qcard .qd{flex:1; line-height:1.7;}
+  .qcard .qd b{color:var(--gold);}
+  .qbar{height:7px; background:var(--ink); border:1px solid var(--edge); margin-top:5px; width:150px;}
+  .qbar i{display:block; height:100%; background:var(--green);}
+  .qrw{text-align:right; min-width:84px;}
+  .qrw .price{color:var(--gold); margin-bottom:5px;}
+  /* cabin */
+  .plaque{display:flex; gap:9px; align-items:center; background:#2c2238;
+    background:linear-gradient(#33291f,#241b12); border:2px solid #5e4628;
+    padding:7px 9px; margin-bottom:7px;}
+  .plaque.mounted{border-color:var(--gold); box-shadow:0 0 0 1px #5e4628 inset;}
+  .plaque canvas{image-rendering:pixelated; background:#171228; border:1px solid #5e4628;}
+  .plaque .pd{flex:1; line-height:1.6;}
+  .plaque .mt{color:var(--gold);}
+  .statrow{display:flex; justify-content:space-between; padding:6px 4px;
+    border-bottom:1px solid var(--edge); line-height:1.6;}
+  .statrow b{color:var(--gold);}
+  .aq-caption{display:flex; align-items:center; justify-content:center; min-height:32px;
+    margin-bottom:8px; color:var(--dim); line-height:1.4; text-align:center;}
+  #aqList .statrow{align-items:center; gap:12px; min-height:48px; padding:8px 4px; line-height:1.2;}
+  #aqList .statrow > span:first-child{display:flex; align-items:center; flex:1; min-height:32px; line-height:1.2;}
+  .aq-actions{display:flex; align-items:center; justify-content:flex-end; gap:8px; flex:none; flex-wrap:wrap;}
+  #saveBox{width:100%; height:90px; background:var(--ink); color:var(--paper);
+    border:2px solid var(--edge); font:inherit; font-size:8px; padding:6px; margin:8px 0; resize:vertical;}
+  #shinyBadge{display:inline-block; background:#3a3214; color:#ffd866; border:2px solid #ffd866;
+    padding:3px 8px; font-size:8px; margin-bottom:6px; animation:shimr 1.2s steps(2) infinite;}
+  @keyframes shimr{50%{border-color:#fff0c0; color:#fff0c0;}}
+  ::-webkit-scrollbar{width:10px;} ::-webkit-scrollbar-track{background:var(--ink);} ::-webkit-scrollbar-thumb{background:var(--edge);}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="hud">
+    <div class="hudchip" id="coinChip">⛀ <span id="coins">0</span></div>
+    <div class="hudchip" id="locChip"><span id="locName">Willow Pond</span></div>
+    <div class="hudchip" id="timeChip"><span id="timeIcon">☀</span> <span id="timeName">Day</span></div>
+    <div class="hudchip" id="seasonChip">🌸 Spring</div>
+    <div class="hudchip" id="wxChip">🌤 Clear</div>
+    <div class="hudchip" id="streakChip" style="display:none">🔥</div>
+    <div class="hudchip" id="ghChip" style="display:none; border-color:var(--gold); color:var(--gold)">✨</div>
+    <div class="hudchip" id="masterChip" style="display:none; border-color:var(--gold); color:var(--gold)">⭐</div>
+    <div class="spacer"></div>
+    <button id="thermosBtn" title="Sip coffee to pass time" style="display:none">☕ Sip</button>
+    <button id="muteBtn">♪ On</button>
+    <button id="helpBtn">?</button>
+  </div>
+
+  <div id="stage">
+    <canvas id="scene" width="320" height="180"></canvas>
+    <div id="hint">Hold SPACE or the mouse to charge a cast</div>
+  </div>
+
+  <div id="bottomBar">
+    <label class="sel">Rod <select id="rodSel"></select></label>
+    <label class="sel">Lure <select id="lureSel"></select></label>
+    <div class="spacer" style="flex:1"></div>
+    <button id="questBtn">📋 Requests</button>
+    <button id="cabinBtn">🏠 Cabin</button>
+    <button id="travelBtn">⛵ Travel</button>
+    <button id="shopBtn" class="gold">⛀ Shop</button>
+    <button id="dexBtn">◈ Fishopedia</button>
+    <button id="achBtn">★ Awards</button>
+  </div>
+</div>
+
+<div id="shade">
+  <!-- SHOP -->
+  <div class="modal" id="shopModal">
+    <div class="mhead"><h2>BAIT &amp; BARTER</h2><div class="sub">"If it swims, we sell something for it."</div><button class="x" data-close>✕</button></div>
+    <div class="tabs">
+      <button data-tab="rods" class="on">Rods</button>
+      <button data-tab="lures">Lures</button>
+      <button data-tab="gear">Gear</button>
+    </div>
+    <div id="shopList"></div>
+  </div>
+
+  <!-- DEX -->
+  <div class="modal" id="dexModal">
+    <div class="mhead"><h2>FISHOPEDIA</h2><div class="sub" id="dexSub"></div><button class="x" data-close>✕</button></div>
+    <div class="dexbar" id="dexBar"></div>
+    <div class="tabs" id="dexTabs">
+      <button data-loc="pond" class="on">Pond</button>
+      <button data-loc="river">Creek</button>
+      <button data-loc="lake">Lake</button>
+      <button data-loc="coast">Coast</button>
+      <button data-loc="bog">Bog</button>
+      <button data-loc="drop">Drop</button>
+      <button data-loc="still" id="stillTab" style="display:none">🕯</button>
+    </div>
+    <div id="dexGrid"></div>
+  </div>
+
+  <!-- ACHIEVEMENTS -->
+  <div class="modal" id="achModal">
+    <div class="mhead"><h2>AWARDS</h2><div class="sub" id="achSub"></div><button class="x" data-close>✕</button></div>
+    <div id="achList"></div>
+  </div>
+
+  <!-- TRAVEL -->
+  <div class="modal" id="travelModal">
+    <div class="mhead"><h2>TRAVEL</h2><div class="sub">Pick a spot, the fish are waiting</div><button class="x" data-close>✕</button></div>
+    <div id="travelList"></div>
+  </div>
+
+  <!-- REQUESTS -->
+  <div class="modal" id="questModal">
+    <div class="mhead"><h2>REQUEST BOARD</h2><div class="sub" id="questSub"></div><button class="x" data-close>✕</button></div>
+    <div id="derbyPanel"></div>
+    <div id="cotdPanel"></div>
+    <div id="questList"></div>
+  </div>
+
+  <!-- CABIN -->
+  <div class="modal" id="cabinModal">
+    <div class="mhead"><h2>YOUR CABIN</h2><div class="sub" id="cabinSub"></div><button class="x" data-close>✕</button></div>
+    <div class="tabs">
+      <button data-ctab="trophies" class="on">Trophies</button>
+      <button data-ctab="aquarium">Aquarium</button>
+      <button data-ctab="stats">Journal</button>
+      <button data-ctab="save">Save Chest</button>
+    </div>
+    <div id="cabinBody"></div>
+  </div>
+
+  <!-- CATCH -->
+  <div class="modal" id="catchModal">
+    <div id="newBadge" style="display:none">NEW SPECIES!</div>
+    <div id="shinyBadge" style="display:none">✦ SHINY ✦</div>
+    <h2 id="catchName">Bluegill</h2>
+    <div id="catchStars" class="stars">★</div>
+    <canvas id="catchCanvas" width="140" height="70"></canvas>
+    <div id="catchInfo"></div>
+    <div id="catchFlavor"></div>
+    <div style="display:flex; gap:7px; justify-content:center; flex-wrap:wrap; margin-top:10px;">
+      <button id="sellBtn" class="gold">Sell</button>
+      <button id="keepBtn">🐠 Keep</button>
+      <button id="feedBtn" style="display:none">🐱 Feed cat</button>
+      <button id="postBtn">📮 Postcard</button>
+    </div>
+  </div>
+
+  <!-- BOTTLE -->
+  <div class="modal" id="bottleModal" style="text-align:center">
+    <h2 style="color:var(--gold)">🍾 Message in a Bottle</h2>
+    <div id="bottleNum" style="color:var(--dim); margin:8px 0; font-size:8px;"></div>
+    <div id="bottleText" style="line-height:2; margin-bottom:12px; color:var(--paper)"></div>
+    <button data-close class="gold">Tuck it away</button>
+  </div>
+
+  <!-- HELP -->
+  <div class="modal" id="helpModal">
+    <div class="mhead"><h2>HOW TO FISH</h2><div class="sub">it's the easy part of life</div><button class="x" data-close>✕</button></div>
+    <div class="hp"><b>1. Cast</b> — hold SPACE / mouse to charge, release to cast. Distance matters: some fish hug the shallows, others sit way out.</div>
+    <div class="hp"><b>2. Wait</b> — small taps are just nibbles. Don't strike! Wait for the <b>!</b> and the big tug, then press to hook.</div>
+    <div class="hp"><b>3. Reel</b> — hold to raise the catch bar, release to drop it. Keep the fish inside the bar to fill the line. Bigger rods, bigger bar.</div>
+    <div class="hp"><b>4. Live by the water</b> — seasons turn every few days and the weather has moods. Rain wakes the fish, fog stirs strange ones. Check the <b>Request Board</b> for daily jobs, and mount your best catches in the <b>Cabin</b> (each trophy boosts your sale prices).</div>
+    <div class="hp"><b>5. Read the water</b> — dark shapes cruising under the surface are real fish: cast near one to target it. Bubbling patches mean fast bites. Nail the gold sliver on the cast meter for a <b>perfect cast</b>, and keep landing fish without a loss to build a 🔥 <b>streak bonus</b>.</div>
+    <div class="hp"><b>6. Company</b> — every catch is a choice: sell it, keep it for the cabin <b>aquarium</b>, feed the <b>dock cat</b> (kindness is remembered), or send it as a 📮 <b>postcard</b> PNG. Every 4th day is <b>Derby Day</b> — standings live on the request board. Beat VERA.</div>
+    <div class="hp"><b>7. Above and below</b> — in winter the pond and lake <b>freeze</b>: aim, drill, and fish the shadows you can see through the ice. Buy passage to <b>The Drop</b> to fish straight down through sunlit, twilight and midnight water (the deepest dark only answers to a glowing lure). On clear nights, watch the sky: constellations, sometimes the <b>aurora</b>... and sometimes a star falls where a cast can reach it. The 📅 <b>Cast of the Day</b> on the request board is identical in every copy of the game — compare cards with a friend.</div>
+    <div class="hp"><b>Tips</b> — fish care about time of day, season, weather, distance and lures. The Fishopedia tracks what you've learned. Coins buy rods, lures, gear and travel passes. Progress saves automatically.</div>
+    <div style="display:flex; gap:8px; margin-top:8px;">
+      <button data-close class="gold">Got it</button>
+      <button id="resetBtn" style="margin-left:auto">Reset save</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+<script>
+'use strict';
+/* ============================================================
+   DRIFTWOOD — a tiny fishing game
+   ============================================================ */
+const $ = s => document.querySelector(s);
+const $$ = s => [...document.querySelectorAll(s)];
+const clamp = (v,a,b)=>v<a?a:v>b?b:v;
+const lerp = (a,b,t)=>a+(b-a)*t;
+const rnd = (a=1,b)=> b===undefined ? Math.random()*a : a+Math.random()*(b-a);
+const pick = arr => arr[Math.floor(Math.random()*arr.length)];
+
+/* ---------------- LOCATIONS ---------------- */
+const LOCS = {
+  pond:  { name:'Willow Pond',      price:0,    desc:'A sleepy pond ringed with cattails. Where everyone starts.',
+           water:'#2e6e62', waterDeep:'#1e4a44', land:'#4a7a3c', tree:'#274428', sand:'#8a7a4e' },
+  river: { name:'Cedar Creek',      price:400,  desc:'Cold riffles and shaded pools. Trout country.',
+           water:'#3a7a8c', waterDeep:'#235461', land:'#56833f', tree:'#2c4a2a', sand:'#9a8a60' },
+  lake:  { name:'Pinefall Lake',    price:1200, desc:'Deep, glassy water below the pines. Big shadows move down there.',
+           water:'#2a5a8c', waterDeep:'#173a61', land:'#3e6e3a', tree:'#1e3626', sand:'#7a7458' },
+  coast: { name:'Saltwhisper Coast',price:3000, desc:'Open sea and gull cries. The far water hides giants.',
+           water:'#2a6a9c', waterDeep:'#15426e', land:'#c2a86a', tree:'#3a5a40', sand:'#d8c088' },
+  bog:   { name:'Murkwillow Bog',   price:6000, desc:'Still, tea-dark water. The mist keeps its own hours, and so do the fish.',
+           water:'#3a5a48', waterDeep:'#22372c', land:'#4e5a36', tree:'#33402a', sand:'#6e6a4a' },
+  drop:  { name:'The Drop',         price:10000, deep:true, desc:'Open water over the shelf edge. Below the boat: sunlight, then twilight, then the true dark.',
+           water:'#1e4a70', waterDeep:'#0a1e38', land:'#1e4a70', tree:'#1e4a70', sand:'#12304e' },
+  still: { name:'The Stillwater',   price:0, hidden:true, desc:'The ferryman asks nothing. Time asks nothing either \u2014 it does not pass here.',
+           water:'#4e4a6a', waterDeep:'#322e4a', land:'#565272', tree:'#5e5a7a', sand:'#6a667e' },
+};
+
+const PHASES = ['dawn','day','dusk','night'];
+const PHASE_ICON = { dawn:'🌅', day:'☀', dusk:'🌇', night:'☾' };
+const PHASE_LABEL = { dawn:'Dawn', day:'Day', dusk:'Dusk', night:'Night' };
+const BANDS = { near:'Close in', mid:'Mid-water', far:'Far out', any:'Anywhere' };
+const RARITY = { 1:'Common', 2:'Uncommon', 3:'Rare', 4:'Prized', 5:'Legendary' };
+const RCOLOR = { 1:'#c8d0e8', 2:'#7dc95e', 3:'#6ab0d8', 4:'#b07ddb', 5:'#f2c14e' };
+
+/* ---------------- FISH ----------------
+   r: rarity 1-5 | time: null = all phases | band: preferred cast distance
+   len: [min,max] cm | val: base coins | d: fight {sp speed, dart, dr drain}
+   tags: lure affinities | art: sprite params
+------------------------------------------ */
+const FISH = [
+ // ---- WILLOW POND ----
+ {id:'bluegill', name:'Bluegill', loc:'pond', r:1, time:null, band:'near', len:[10,25], val:9,
+  d:{sp:34,dart:.15,dr:.7}, tags:[],
+  art:{L:14,H:8,c1:'#5b8a3c',c2:'#36511f',c3:'#d9a04b',pat:'stripes',pc:'#3d6128',tail:'fan'},
+  fl:'Bold beyond its size. Will fight you over a crumb and lose with dignity.'},
+ {id:'pumpkinseed', name:'Pumpkinseed', loc:'pond', r:1, time:['dawn','day','dusk'], band:'near', len:[8,20], val:10,
+  d:{sp:36,dart:.18,dr:.7}, tags:[],
+  art:{L:13,H:8,c1:'#b5773a',c2:'#6e4a22',c3:'#e8c277',pat:'spots',pc:'#3fa3a0',tail:'fan'},
+  fl:'Wears teal freckles like it dressed itself in the dark. Stunning anyway.'},
+ {id:'carp', name:'Common Carp', loc:'pond', r:2, time:null, band:'mid', len:[30,76], val:24,
+  d:{sp:30,dart:.06,dr:1.1}, tags:[],
+  art:{L:18,H:9,c1:'#8a7a3f',c2:'#564c24',c3:'#cdbf86',pat:'speckle',pc:'#6e6232',tail:'fork'},
+  fl:'An old soul in muddy armor. Pulls like a tractor with nowhere to be.'},
+ {id:'perch', name:'Yellow Perch', loc:'pond', r:1, time:['dawn','day'], band:'mid', len:[12,30], val:12,
+  d:{sp:38,dart:.2,dr:.75}, tags:[],
+  art:{L:15,H:7,c1:'#d2a23c',c2:'#7a5d1e',c3:'#f0d490',pat:'stripes',pc:'#5a4a14',tail:'fork'},
+  fl:'Travels in gangs and dresses in prison stripes. Coincidence?'},
+ {id:'lmbass', name:'Largemouth Bass', loc:'pond', r:2, time:['dawn','dusk','day'], band:'mid', len:[25,60], val:28,
+  d:{sp:55,dart:.35,dr:.9}, tags:[],
+  art:{L:18,H:8,c1:'#4f7a45',c2:'#2c4626',c3:'#cfd8b0',pat:'band',pc:'#22381e',tail:'fork'},
+  fl:'A bucket with fins and an attitude. Eats anything that fits, and some that don\u2019t.'},
+ {id:'bullhead', name:'Brown Bullhead', loc:'pond', r:2, time:['dusk','night'], band:'near', len:[20,45], val:22,
+  d:{sp:32,dart:.08,dr:1.0}, tags:['glow'],
+  art:{L:16,H:8,c1:'#5d4a36',c2:'#3a2d20',c3:'#c2a878',pat:'none',pc:'#000',tail:'fan'},
+  fl:'Whiskered night janitor of the pond. Knows where everything sank.'},
+ {id:'koi', name:'Koi', loc:'pond', r:3, time:['dawn','day'], band:'mid', len:[30,70], val:60,
+  d:{sp:48,dart:.2,dr:1.0}, tags:[],
+  art:{L:17,H:8,c1:'#efe9dd',c2:'#c5bcab',c3:'#fff8ee',pat:'spots',pc:'#d95b2a',tail:'fan'},
+  fl:'Escaped a garden long ago. Still carries itself like ornamental royalty.'},
+ {id:'goldkoi', name:'Golden Koi', loc:'pond', r:5, time:['dawn','dusk'], band:'mid', len:[45,90], val:420,
+  d:{sp:70,dart:.5,dr:1.3}, tags:[],
+  art:{L:19,H:9,c1:'#f2c14e',c2:'#b8861c',c3:'#ffe9a8',pat:'spots',pc:'#e8762c',tail:'fan'},
+  fl:'Seen only when the light turns to honey. Locals say it grants one quiet wish.'},
+ // ---- CEDAR CREEK ----
+ {id:'chub', name:'Creek Chub', loc:'river', r:1, time:null, band:'near', len:[8,20], val:9,
+  d:{sp:36,dart:.18,dr:.7}, tags:[],
+  art:{L:13,H:6,c1:'#9aa7ad',c2:'#5d6a70',c3:'#d7dee2',pat:'band',pc:'#4a565c',tail:'fork'},
+  fl:'First fish of a thousand childhoods. Always hungry, never bitter about it.'},
+ {id:'rainbow', name:'Rainbow Trout', loc:'river', r:2, time:null, band:'mid', len:[25,60], val:30,
+  d:{sp:58,dart:.35,dr:.9}, tags:['fly'],
+  art:{L:17,H:7,c1:'#7d9c6a',c2:'#48643e',c3:'#d9d2c0',pat:'band',pc:'#d97b8c',tail:'fork'},
+  fl:'A ribbon of sunset down each side. Jumps like it\u2019s showing off, because it is.'},
+ {id:'brook', name:'Brook Trout', loc:'river', r:2, time:['dawn','dusk'], band:'near', len:[20,45], val:32,
+  d:{sp:54,dart:.3,dr:.85}, tags:['fly'],
+  art:{L:16,H:7,c1:'#4a6e52',c2:'#2c4634',c3:'#e07b3f',pat:'spots',pc:'#f0d05a',tail:'fan'},
+  fl:'Lives only where the water runs cold and honest. A jewel in wet moss.'},
+ {id:'brown', name:'Brown Trout', loc:'river', r:3, time:['dusk','night'], band:'mid', len:[25,70], val:55,
+  d:{sp:60,dart:.4,dr:1.0}, tags:['fly','glow'],
+  art:{L:17,H:7,c1:'#8a743c',c2:'#544420',c3:'#e3cf92',pat:'spots',pc:'#b03a2e',tail:'fork'},
+  fl:'Old, suspicious, nocturnal. Has refused better flies than yours.'},
+ {id:'smb', name:'Smallmouth Bass', loc:'river', r:2, time:['day','dusk'], band:'mid', len:[20,50], val:26,
+  d:{sp:56,dart:.35,dr:.95}, tags:[],
+  art:{L:16,H:8,c1:'#6e5a30',c2:'#44381c',c3:'#cfc096',pat:'stripes',pc:'#4e3e1a',tail:'fork'},
+  fl:'Pound for pound the angriest thing in the creek. It\u2019s not personal. It is.'},
+ {id:'grayling', name:'Arctic Grayling', loc:'river', r:3, time:['dawn','day'], band:'mid', len:[25,50], val:58,
+  d:{sp:52,dart:.3,dr:.9}, tags:['fly'],
+  art:{L:16,H:7,c1:'#7a8ba6',c2:'#46546e',c3:'#c8d2e0',pat:'speckle',pc:'#32405c',tail:'fork',fin:'big'},
+  fl:'Raises a sail-sized fin like a flag from somewhere colder and stranger.'},
+ {id:'salmon', name:'Atlantic Salmon', loc:'river', r:4, time:null, band:'far', len:[55,110], val:140,
+  d:{sp:75,dart:.4,dr:1.1}, tags:['fly'],
+  art:{L:20,H:8,c1:'#9fb0ba',c2:'#5e7078',c3:'#e2e8ec',pat:'speckle',pc:'#46545c',tail:'fork'},
+  fl:'Came back up the whole river to be here. Respect the commute.'},
+ {id:'steelhead', name:'Ghostrun Steelhead', loc:'river', r:5, time:['dawn','night'], band:'far', len:[60,110], val:460,
+  d:{sp:85,dart:.55,dr:1.35}, tags:['fly'],
+  art:{L:21,H:8,c1:'#c9d4dc',c2:'#8d9ca8',c3:'#f2f6f8',pat:'band',pc:'#cf7d92',tail:'fork'},
+  fl:'A pale rumor that swims upstream through fog. Most who hook it tell no one.'},
+ // ---- PINEFALL LAKE ----
+ {id:'cisco', name:'Cisco', loc:'lake', r:1, time:null, band:'mid', len:[15,35], val:11,
+  d:{sp:40,dart:.18,dr:.75}, tags:[],
+  art:{L:14,H:6,c1:'#8ea4b4',c2:'#546c7c',c3:'#dce6ec',pat:'none',pc:'#000',tail:'fork'},
+  fl:'Silver and countless. The lake\u2019s loose change.'},
+ {id:'walleye', name:'Walleye', loc:'lake', r:2, time:['dusk','night'], band:'mid', len:[35,75], val:34,
+  d:{sp:48,dart:.22,dr:1.0}, tags:['glow'],
+  art:{L:18,H:7,c1:'#b09a4a',c2:'#6e5e26',c3:'#e8dca8',pat:'speckle',pc:'#564a1e',tail:'fork'},
+  fl:'Eyes like polished marbles, made for the dark. Sees you long before you see it.'},
+ {id:'pike', name:'Northern Pike', loc:'lake', r:3, time:['dawn','day'], band:'mid', len:[45,110], val:62,
+  d:{sp:66,dart:.45,dr:1.05}, tags:[],
+  art:{L:21,H:7,c1:'#4e6e3e',c2:'#2c4424',c3:'#cdd6a8',pat:'spots',pc:'#bcd49a',tail:'fork'},
+  fl:'A green torpedo full of teeth. Ambushes first, asks questions never.'},
+ {id:'laker', name:'Lake Trout', loc:'lake', r:3, time:null, band:'far', len:[40,90], val:66,
+  d:{sp:58,dart:.25,dr:1.1}, tags:['fly'],
+  art:{L:19,H:8,c1:'#5e6e62',c2:'#38463c',c3:'#c2ccc4',pat:'speckle',pc:'#e8eee9',tail:'fork'},
+  fl:'Haunts the cold basement of the lake. Comes up slow, leaves marks on your arms.'},
+ {id:'burbot', name:'Burbot', loc:'lake', r:3, time:['night'], band:'near', len:[30,80], val:60,
+  d:{sp:44,dart:.15,dr:1.2}, tags:['glow'],
+  art:{L:19,H:7,c1:'#6e5e3a',c2:'#443822',c3:'#c8b888',pat:'speckle',pc:'#2e2618',tail:'fan'},
+  fl:'The lake\u2019s only freshwater cod, awake when nothing else is. An eel\u2019s mustache dream.'},
+ {id:'muskie', name:'Muskellunge', loc:'lake', r:4, time:['day','dusk'], band:'far', len:[60,130], val:150,
+  d:{sp:80,dart:.5,dr:1.2}, tags:[],
+  art:{L:22,H:8,c1:'#7a8a5a',c2:'#4a5834',c3:'#d8e0c0',pat:'stripes',pc:'#3c4a2a',tail:'fork'},
+  fl:'The fish of ten thousand casts. You\u2019ve been counting, haven\u2019t you?'},
+ {id:'sturgeon', name:'Elder Sturgeon', loc:'lake', r:5, time:['night'], band:'far', len:[90,200], val:520,
+  d:{sp:45,dart:.15,dr:1.8}, tags:['glow'],
+  art:{L:24,H:8,c1:'#6a7078',c2:'#3e444c',c3:'#b8bec6',pat:'band',pc:'#2c3036',tail:'point'},
+  fl:'Older than the pines, maybe older than the lake. It tolerates being caught.'},
+ // ---- SALTWHISPER COAST ----
+ {id:'herring', name:'Herring', loc:'coast', r:1, time:null, band:'near', len:[15,30], val:10,
+  d:{sp:42,dart:.2,dr:.7}, tags:[],
+  art:{L:13,H:6,c1:'#9ab0bc',c2:'#5c7280',c3:'#e0eaee',pat:'none',pc:'#000',tail:'fork'},
+  fl:'One of a billion, and proud of it. The ocean runs on herring.'},
+ {id:'mackerel', name:'Atlantic Mackerel', loc:'coast', r:1, time:['dawn','day'], band:'mid', len:[25,40], val:13,
+  d:{sp:50,dart:.25,dr:.75}, tags:[],
+  art:{L:15,H:6,c1:'#5aa0b8',c2:'#28586e',c3:'#d8e8ee',pat:'stripes',pc:'#1e3e4e',tail:'fork'},
+  fl:'Tiger-striped and built for speed. Never stops swimming, never will.'},
+ {id:'flounder', name:'Flounder', loc:'coast', r:2, time:null, band:'near', len:[25,60], val:30,
+  d:{sp:36,dart:.12,dr:1.0}, tags:[],
+  art:{L:15,H:10,c1:'#8a6e4a',c2:'#5a4830',c3:'#c8b088',pat:'speckle',pc:'#46361e',tail:'fan'},
+  fl:'Lies flat on the sand pretending to be sand. Both eyes migrated to watch you do it.'},
+ {id:'seabass', name:'Black Sea Bass', loc:'coast', r:2, time:['day','dusk'], band:'mid', len:[25,60], val:34,
+  d:{sp:52,dart:.3,dr:.95}, tags:[],
+  art:{L:16,H:8,c1:'#3e4450',c2:'#22262e',c3:'#8e96a4',pat:'speckle',pc:'#6a7282',tail:'fan'},
+  fl:'No matter what it is, it\u2019s sea bass. At least it\u2019s here.'},
+ {id:'rockfish', name:'Red Rockfish', loc:'coast', r:3, time:['night'], band:'near', len:[30,60], val:64,
+  d:{sp:46,dart:.2,dr:1.1}, tags:['glow'],
+  art:{L:15,H:9,c1:'#c25a3a',c2:'#7e3622',c3:'#e8a888',pat:'speckle',pc:'#5e2616',tail:'fan'},
+  fl:'Glows ember-red among the night rocks. May be older than your grandmother.'},
+ {id:'bluefin', name:'Bluefin Tuna', loc:'coast', r:4, time:['dawn','day'], band:'far', len:[100,220], val:170,
+  d:{sp:90,dart:.35,dr:1.25}, tags:[],
+  art:{L:21,H:9,c1:'#3c5a7c',c2:'#1e3450',c3:'#c8d4e0',pat:'none',pc:'#000',tail:'point'},
+  fl:'A muscle the size of a door, with opinions about being hooked.'},
+ {id:'marlin', name:'Moonfin Marlin', loc:'coast', r:5, time:['night'], band:'far', len:[150,300], val:600,
+  d:{sp:95,dart:.5,dr:1.4}, tags:['glow'],
+  art:{L:23,H:9,c1:'#4a6a9c',c2:'#283c62',c3:'#b8c8e0',pat:'band',pc:'#7ab0d8',tail:'point',bill:true},
+  fl:'Surfaces only under a full dark sky, sewing moonlight into the swells.'},
+ // ---- MURKWILLOW BOG ----
+ {id:'mudwhisker', name:'Mudwhisker Catfish', loc:'bog', r:1, time:null, band:'near', len:[20,55], val:12,
+  d:{sp:28,dart:.06,dr:0.9}, tags:[],
+  art:{L:17,H:8,c1:'#6e5a3a',c2:'#473a22',c3:'#a08a5c',pat:'speckle',pc:'#564626',tail:'point'},
+  fl:'Tastes the bog through its whiskers. Has never once been in a hurry.'},
+ {id:'peatdarter', name:'Peat Darter', loc:'bog', r:1, time:['dawn','day','dusk'], band:'near', len:[6,14], val:9,
+  d:{sp:44,dart:.3,dr:.55}, tags:[],
+  art:{L:11,H:6,c1:'#7a6a32',c2:'#4c421e',c3:'#c2ae6a',pat:'band',pc:'#3a3216',tail:'point'},
+  fl:'Zips between reeds like a rumor. Hard to hook, harder to spot.'},
+ {id:'bogbream', name:'Bogbelly Bream', loc:'bog', r:2, time:['dawn','dusk'], band:'mid', len:[18,38], val:24,
+  d:{sp:36,dart:.14,dr:.85}, tags:[],
+  art:{L:14,H:10,c1:'#8a6e46',c2:'#54421f',c3:'#d2b87e',pat:'stripes',pc:'#5e4a26',tail:'fan'},
+  fl:'Round as a kettle and twice as warm-hearted, probably.'},
+ {id:'sphagsnap', name:'Sphagnum Snapper', loc:'bog', r:2, time:['day','dusk'], band:'far', len:[22,44], val:27,
+  d:{sp:40,dart:.2,dr:.95}, tags:[],
+  art:{L:15,H:8,c1:'#5e7a3a',c2:'#37491f',c3:'#aac26e',pat:'spots',pc:'#2e3c18',tail:'fork'},
+  fl:'Snaps at anything green. The moss has filed several complaints.'},
+ {id:'lanterneel', name:'Lantern Eel', loc:'bog', r:3, time:['night'], band:'mid', len:[40,90], val:52,
+  d:{sp:46,dart:.26,dr:1.1}, tags:['glow'],
+  art:{L:22,H:5,c1:'#3a6e5e',c2:'#1e4438',c3:'#8ee0b8',pat:'band',pc:'#b8f0d2',tail:'point'},
+  fl:'Carries its own dim light through the dark water. Polite enough to share it.'},
+ {id:'willocarp', name:'Will-o-Carp', loc:'bog', r:3, time:['dusk','night'], band:'mid', len:[26,58], val:56,
+  d:{sp:42,dart:.24,dr:1.05}, tags:['mist','glow'],
+  art:{L:17,H:9,c1:'#7ea8a0',c2:'#456e66',c3:'#d2f0e6',pat:'speckle',pc:'#9ed6c8',tail:'fan'},
+  fl:'Pale as marsh-light. Folk say it leads travelers astray; mostly it leads them to fish.'},
+ {id:'hollowgar', name:'Hollow King Gar', loc:'bog', r:4, time:['dusk','night'], band:'far', len:[60,130], val:120,
+  d:{sp:54,dart:.3,dr:1.35}, tags:[],
+  art:{L:24,H:6,c1:'#5a6e46',c2:'#36452a',c3:'#9cb27a',pat:'band',pc:'#2c3a1e',tail:'point',bill:true},
+  fl:'An old spear of a fish. Rules the deep channels and answers to no heron.'},
+ {id:'matriarch', name:'Marsh Matriarch', loc:'bog', r:5, time:['night'], band:'far', len:[90,170], val:420,
+  d:{sp:62,dart:.38,dr:1.6}, tags:['mist'],
+  art:{L:26,H:11,c1:'#4a5e3c',c2:'#2a3a22',c3:'#c2d49a',pat:'speckle',pc:'#8aa86a',tail:'fan'},
+  fl:'Older than the willows. The bog rearranges itself around her moods.'},
+ // ---- SEASON & WEATHER WANDERERS ----
+ {id:'blossomkoi', name:'Blossom Koi', loc:'pond', r:3, time:['dawn','day'], band:'mid', len:[24,50], val:58, season:['spring'],
+  d:{sp:40,dart:.18,dr:1.0}, tags:[],
+  art:{L:16,H:9,c1:'#e8b8c8',c2:'#b07088',c3:'#fae6ee',pat:'spots',pc:'#e0604c',tail:'fan'},
+  fl:'Arrives with the petals and leaves with them too. Spring, briefly, with fins.'},
+ {id:'stormshad', name:'Stormrunner Shad', loc:'river', r:3, time:['day','dusk'], band:'mid', len:[18,36], val:54, wx:'rain',
+  d:{sp:50,dart:.3,dr:.95}, tags:[],
+  art:{L:14,H:7,c1:'#6a8ab0',c2:'#3e5a7c',c3:'#c2d8ee',pat:'stripes',pc:'#48648a',tail:'fork'},
+  fl:'Only runs when the rain drums the surface. Loves a downpour like a festival.'},
+ {id:'frostgill', name:'Frostgill Char', loc:'lake', r:3, time:['day'], band:'far', len:[28,60], val:60, season:['winter'],
+  d:{sp:44,dart:.22,dr:1.1}, tags:['fly'],
+  art:{L:17,H:8,c1:'#8ab0c2',c2:'#54788a',c3:'#e6f4fa',pat:'spots',pc:'#f2f8fc',tail:'fork'},
+  fl:'Wears the winter like a coat. When the first snow falls, it rises.'},
+ {id:'mistpike', name:'Mistwraith Pike', loc:'lake', r:4, time:['dusk','night'], band:'mid', len:[50,110], val:130, wx:'fog',
+  d:{sp:56,dart:.34,dr:1.3}, tags:['mist'],
+  art:{L:23,H:6,c1:'#8a9aa8',c2:'#566470',c3:'#dde6ec',pat:'band',pc:'#6e7e8c',tail:'point'},
+  fl:'Seen only when the lake forgets where it ends. Some say it IS the fog.'},
+ {id:'thundertuna', name:'Thunderhead Tuna', loc:'coast', r:4, time:['day','dusk'], band:'far', len:[70,150], val:150, wx:'rain',
+  d:{sp:60,dart:.3,dr:1.45}, tags:[],
+  art:{L:22,H:10,c1:'#3e5a8a',c2:'#243a5e',c3:'#9ab8d8',pat:'stripes',pc:'#2c4468',tail:'fork'},
+  fl:'Rides the storm swell for the joy of it. Hooking one is signing up for the ride.'},
+ // ---- ??? ----
+ {id:'echo', name:'The Echo', loc:'pond', r:5, time:['night'], band:'far', len:[80,160], val:500, wx:'fog', hidden:true,
+  d:{sp:64,dart:.4,dr:1.7}, tags:['glow','mist'],
+  art:{L:24,H:10,c1:'#9ec8d8',c2:'#5a8a9e',c3:'#eafaff',pat:'speckle',pc:'#cdeef8',tail:'fan'},
+  fl:'E. was right. It was here the whole time, swimming under every cast you ever made.'},
+ // ---- ? ----
+ {id:'hummer', name:'The Hummer', loc:'river', r:4, time:null, band:'mid', len:[25,50], val:160,
+  d:{sp:48,dart:.26,dr:1.25}, tags:[],
+  art:{L:15,H:9,c1:'#c2a63e',c2:'#8a742a',c3:'#f2e69e',pat:'stripes',pc:'#6e5c20',tail:'fan'},
+  fl:'It hums back now, a half-beat behind the melody. It was listening the whole time.'},
+ // ---- UNDER THE ICE (winter, frozen waters only) ----
+ {id:'smelt', name:'Under-Ice Smelt', loc:'pond', r:1, time:null, band:'near', len:[6,15], val:11, ice:true,
+  d:{sp:36,dart:.2,dr:.6}, tags:[],
+  art:{L:11,H:5,c1:'#a8b8c8',c2:'#6e8296',c3:'#e8f2fa',pat:'band',pc:'#8ea4b8',tail:'fork'},
+  fl:'Schools in the dark under the ice, waiting for a hole to open. Any hole. Yours.'},
+ {id:'frostburbot', name:'Frostwhisker Burbot', loc:'lake', r:3, time:['night'], band:'mid', len:[30,70], val:62, ice:true,
+  d:{sp:42,dart:.2,dr:1.1}, tags:['glow'],
+  art:{L:19,H:7,c1:'#5e6a5a',c2:'#3a443a',c3:'#a8b8a0',pat:'speckle',pc:'#2e382e',tail:'point'},
+  fl:'The only fish that likes winter nights more than you do. Barely.'},
+ {id:'auroratrout', name:'Aurora Trout', loc:'lake', r:4, time:['night'], band:'far', len:[35,75], val:150, ice:true, aurora:true,
+  d:{sp:54,dart:.32,dr:1.3}, tags:['fly'],
+  art:{L:18,H:8,c1:'#5e8a9e',c2:'#3a5a72',c3:'#b8f0d8',pat:'stripes',pc:'#8ee0c4',tail:'fork'},
+  fl:'Its stripes ripple in the same colors as the sky. Coincidence, says nobody.'},
+ // ---- THE DROP ----
+ {id:'dapple', name:'Sun Dapple Mackerel', loc:'drop', r:1, time:['dawn','day','dusk'], band:'near', len:[20,40], val:16,
+  d:{sp:40,dart:.2,dr:.75}, tags:[],
+  art:{L:14,H:6,c1:'#4e7a9e',c2:'#2e5070',c3:'#c2e0f2',pat:'stripes',pc:'#2a4664',tail:'fork'},
+  fl:'Flashes in the top fathom like loose change. Spends itself just as fast.'},
+ {id:'glassjack', name:'Glasswater Jack', loc:'drop', r:2, time:null, band:'near', len:[26,52], val:30,
+  d:{sp:46,dart:.24,dr:.95}, tags:[],
+  art:{L:15,H:8,c1:'#6e94ae',c2:'#41637e',c3:'#dceef8',pat:'band',pc:'#528098',tail:'fork'},
+  fl:'So silver it borrows the color of whatever hunts it. Currently: you.'},
+ {id:'hatchet', name:'Twilight Hatchet', loc:'drop', r:2, time:null, band:'mid', len:[8,16], val:34,
+  d:{sp:38,dart:.3,dr:.85}, tags:['glow'],
+  art:{L:9,H:8,c1:'#54608a',c2:'#323c5e',c3:'#b8c4ea',pat:'spots',pc:'#9eaede',tail:'point'},
+  fl:'Thin as a coin, bright along the belly. The twilight zone\u2019s pocket knife.'},
+ {id:'gulper', name:'Gulper of the Middle Dark', loc:'drop', r:3, time:null, band:'mid', len:[40,90], val:70,
+  d:{sp:40,dart:.18,dr:1.2}, tags:[],
+  art:{L:21,H:6,c1:'#3a3a54',c2:'#22223a',c3:'#7a7aa0',pat:'band',pc:'#2a2a44',tail:'point'},
+  fl:'Mostly mouth. Swallows first, files complaints never.'},
+ {id:'fangtooth', name:'Fangtooth', loc:'drop', r:3, time:null, band:'mid', len:[10,18], val:74,
+  d:{sp:50,dart:.34,dr:1.15}, tags:[],
+  art:{L:10,H:9,c1:'#4a3a44',c2:'#2c2028',c3:'#9a8290',pat:'speckle',pc:'#241a20',tail:'fan'},
+  fl:'Proportionally the worst teeth in the ocean. Personality to match.'},
+ {id:'lanterneye', name:'Lanterneye', loc:'drop', r:3, time:null, band:'far', len:[12,24], val:88,
+  d:{sp:44,dart:.28,dr:1.15}, tags:['glow'],
+  art:{L:11,H:7,c1:'#2e3e5e',c2:'#1a2440',c3:'#8ef0d8',pat:'spots',pc:'#b8ffe8',tail:'fork'},
+  fl:'Carries two green lamps below its eyes and switches them off when it\u2019s shy.'},
+ {id:'deepangler', name:'Deep Angler', loc:'drop', r:4, time:null, band:'far', len:[20,45], val:170,
+  d:{sp:52,dart:.3,dr:1.45}, tags:['glow'],
+  art:{L:13,H:10,c1:'#2a2438',c2:'#171224',c3:'#ffd8a0',pat:'speckle',pc:'#3c3450',tail:'fan'},
+  fl:'A fellow angler, technically. Its lure is attached. Yours is better company.'},
+ {id:'ribbonking', name:'Ribbon King', loc:'drop', r:5, time:null, band:'far', len:[180,340], val:600,
+  d:{sp:60,dart:.36,dr:1.7}, tags:['mist'],
+  art:{L:28,H:5,c1:'#a8b8d8',c2:'#6a7aa4',c3:'#f2e2c2',pat:'band',pc:'#e0604c',tail:'point'},
+  fl:'The old sailors\u2019 serpent, unspooling through the midnight like a signature.'},
+ // ---- THE STILLWATER ----
+ {id:'gh_gill', name:'Echo of a Bluegill', loc:'still', r:2, time:null, band:'near', len:[10,24], val:40,
+  d:{sp:34,dart:.14,dr:.8}, tags:['mist'],
+  art:{L:12,H:8,c1:'#8e8aa8',c2:'#5e5a78',c3:'#d8d4ea',pat:'band',pc:'#b8b4d2',tail:'fan'},
+  fl:'Somebody\u2019s first catch, remembered fondly enough to stay.'},
+ {id:'gh_perch', name:'Pale Perch', loc:'still', r:2, time:null, band:'mid', len:[14,30], val:46,
+  d:{sp:38,dart:.18,dr:.9}, tags:['mist'],
+  art:{L:13,H:8,c1:'#9a96b2',c2:'#6a6684',c3:'#e2deee',pat:'stripes',pc:'#7e7a98',tail:'fork'},
+  fl:'Its stripes have faded to the color of an old photograph.'},
+ {id:'gh_carp', name:'Memory Carp', loc:'still', r:3, time:null, band:'mid', len:[28,60], val:80,
+  d:{sp:40,dart:.2,dr:1.05}, tags:['mist'],
+  art:{L:17,H:10,c1:'#8a86a4',c2:'#5a5674',c3:'#d4d0e6',pat:'spots',pc:'#aaa6c4',tail:'fan'},
+  fl:'Carries every name it was ever called. Answers to none of them.'},
+ {id:'gh_eel', name:'Lantern\u2019s Shadow', loc:'still', r:3, time:null, band:'far', len:[44,96], val:90,
+  d:{sp:46,dart:.26,dr:1.15}, tags:['mist','glow'],
+  art:{L:22,H:5,c1:'#7e7a9a',c2:'#4e4a6a',c3:'#cac6e0',pat:'band',pc:'#e8e4f8',tail:'point'},
+  fl:'It swims exactly where the lantern light ends. Always exactly there.'},
+ {id:'gh_pike', name:'The Unspoken Pike', loc:'still', r:4, time:null, band:'far', len:[55,115], val:170,
+  d:{sp:56,dart:.34,dr:1.4}, tags:['mist'],
+  art:{L:23,H:6,c1:'#76728e',c2:'#46425e',c3:'#bebad2',pat:'band',pc:'#8a86a2',tail:'point'},
+  fl:'Every angler has one fish they never tell anyone about. This is all of them.'},
+ {id:'gh_first', name:'First Fish', loc:'still', r:5, time:null, band:'far', len:[70,140], val:480,
+  d:{sp:62,dart:.4,dr:1.65}, tags:['mist'],
+  art:{L:24,H:11,c1:'#a6a2c0',c2:'#726e8e',c3:'#f0ecfa',pat:'speckle',pc:'#d8d4ee',tail:'fan'},
+  fl:'The first fish anyone ever caught, anywhere. It has been circling ever since.'},
+];
+const FISH_BY_ID = Object.fromEntries(FISH.map(f=>[f.id,f]));
+
+/* ---------------- JUNK ---------------- */
+const JUNK = [
+  {id:'boot', name:'Old Boot', val:2, icon:'🥾', msg:'One careful owner. Zero matching pairs.'},
+  {id:'can', name:'Tin Can', val:1, icon:'🥫', msg:'Label long gone. Mystery preserved.'},
+  {id:'cap', name:'Soggy Cap', val:2, icon:'🧢', msg:'Someone\u2019s lucky hat. Not lucky enough.'},
+  {id:'tangle', name:'Tangle of Line', val:1, icon:'🧶', msg:'A monument to somebody\u2019s worst afternoon.'},
+  {id:'branch', name:'Driftwood Branch', val:3, icon:'🪵', msg:'Smoothed by years of water. Oddly beautiful.'},
+  {id:'lantern', name:'Rusty Lantern', val:12, icon:'🏮', msg:'Still smells faintly of oil and somebody\u2019s long night.'},
+  {id:'diary', name:'Waterlogged Diary', val:8, icon:'📔', msg:'Only one line survives: \u201cthe big one is real. saw it again at dusk.\u201d'},
+  {id:'coin', name:'Ancient Coin', val:40, icon:'🪙', msg:'A face nobody remembers, worth more than it ever was.'},
+  {id:'bottle', name:'Message in a Bottle', val:25, icon:'🍾', msg:'"To whoever finds this: the fish are biting somewhere. Keep going." '},
+];
+
+/* ---------------- BOTTLE LETTERS ---------------- */
+const BOTTLE_MSGS = [
+  '\u201cTo whoever finds this: the fish are biting somewhere. Keep going.\u201d \u2014 E.',
+  '\u201cSecond bottle. I saw something tonight, in the pond of all places. A pale shape, longer than my boat is wide. Nobody believes me.\u201d \u2014 E.',
+  '\u201cIt only shows itself when the mist comes off the water. I\u2019ve started keeping a fog journal. My family is concerned.\u201d \u2014 E.',
+  '\u201cNight after night I wait. It surfaces past the drop-off, way out where the dark begins, and never any closer.\u201d \u2014 E.',
+  '\u201cIt ignored worms. It ignored spoons. It ignored my best fly. But when my lantern fell in the water \u2014 it CIRCLED it.\u201d \u2014 E.',
+  '\u201cI understand now. Fog. Night. The far water. A light on the line. I have everything I need. Tomorrow I try.\u201d \u2014 E.',
+  '\u201cLast bottle. My arms are too old to fight it, but yours aren\u2019t. The pond keeps an echo of every fish that ever lived in it. Go catch it for me, friend.\u201d \u2014 E.',
+];
+
+/* ---------------- DERBY ---------------- */
+const DERBY_TYPES = [
+  {id:'biggest', name:'Longest Catch', desc:'Land the single longest fish today.', fmt:v=>v.toFixed(1)+' cm'},
+  {id:'count',   name:'Catch Count',   desc:'Land the most fish before the day ends.', fmt:v=>v+' fish'},
+  {id:'stars',   name:'Star Power',    desc:'Rack up the most rarity stars today.', fmt:v=>v+'★'},
+];
+const DERBY_NPCS = [
+  {id:'vera',    name:'VERA',          rival:true, lo:0.88, hi:1.08, win:'\u201cGood. I was getting bored of winning.\u201d', lose:'\u201cBetter luck next derby, sweetheart.\u201d'},
+  {id:'maribel', name:'Old Maribel',   lo:0.45, hi:0.80},
+  {id:'tom',     name:'Tom Two-Rods',  lo:0.50, hi:0.88},
+  {id:'kid',     name:'Bin the Kid',   lo:0.30, hi:0.70},
+  {id:'soup',    name:'Captain Soup',  lo:0.40, hi:0.85},
+];
+const DERBY_PAY = [350, 200, 100];
+
+const FINAL_LETTER = '\u201cYou caught all six. Then you already know what the pond knew: nothing loved is ever really gone, it just swims deeper. I never went home, friend. I bought a boat and a lantern and I ferry the fog now. Thank you for finishing my story. Take my hat \u2014 the luck\u2019s still in it.\u201d \u2014 E., the ferryman';
+
+/* ---------------- SHOP ---------------- */
+const RODS = [
+  {id:'twig', name:'Twig Rod', price:0, zone:32, reel:1.0, icon:'🪵', desc:'A trusty stick, string and stubbornness.'},
+  {id:'bamboo', name:'Bamboo Rod', price:250, zone:38, reel:1.1, icon:'🎋', desc:'Light and forgiving. A wider catch bar.'},
+  {id:'fiber', name:'Fiberglass Rod', price:800, zone:44, reel:1.25, icon:'🎣', desc:'Springy backbone. Wider bar, faster line.'},
+  {id:'flyrod', name:'Split-Cane Fly Rod', price:1200, zone:40, reel:1.2, icon:'🪶', desc:'Trout, char and grayling can\u2019t resist a drifted fly. Strong bonus to fly-loving fish.'},
+  {id:'graphite', name:'Graphite Rod', price:2000, zone:50, reel:1.4, icon:'⚡', desc:'Tournament grade. Big bar, quick gains.'},
+  {id:'mythril', name:'Mythril Rod', price:5000, zone:58, reel:1.6, icon:'✨', desc:'Hums faintly at dawn. The finest rod ever bent.'},
+];
+const LURES = [
+  {id:'worm', name:'Garden Worm', price:0, icon:'🪱', desc:'The classic. Honest work.'},
+  {id:'spinner', name:'Spinner', price:150, icon:'💿', desc:'Flash and wobble. Fish bite much sooner.'},
+  {id:'flyl', name:'Hand-Tied Fly', price:300, icon:'🪰', desc:'Irresistible to trout-kind, best at dawn and dusk.'},
+  {id:'spoon', name:'Silver Spoon', price:450, icon:'🥄', desc:'Draws out the bigger, choosier fish.'},
+  {id:'glow', name:'Glow Jig', price:600, icon:'🔦', desc:'Lights up the dark. Night fish can\u2019t look away.'},
+  {id:'golden', name:'Golden Lure', price:2500, icon:'🌟', desc:'Bites come slow... but oh, what bites. Rare fish favor it.'},
+  {id:'wisp', name:'Will-o-Wisp Lure', price:900, icon:'🕯', desc:'A cold little flame. Mist-born fish follow it home, especially at night.'},
+  {id:'celestial', name:'Celestial Lure', price:0, frags:5, icon:'🌠', desc:'Forged from five fallen stars. At night, legends rise to meet it.'},
+];
+const GEAR = [
+  {id:'journal', name:'Angler\u2019s Journal', price:200, icon:'📓', desc:'Reveals habits of fish you haven\u2019t caught in the Fishopedia.'},
+  {id:'lucky', name:'Lucky Bobber', price:350, icon:'🔴', desc:'Fewer teasing nibbles, and a longer window to hook the real bite.'},
+  {id:'thermos', name:'Cozy Thermos', price:500, icon:'☕', desc:'Sip coffee to pass time to the next part of the day.'},
+  {id:'sonar', name:'Sonar Bobber', price:700, icon:'📡', desc:'The bite alert glows with the rarity of whatever\u2019s pulling.'},
+  {id:'vane', name:'Weather Vane', price:650, icon:'🧭', desc:'A rooster that knows things. Shows what weather is blowing in next.'},
+  {id:'almanac', name:'Angler\u2019s Almanac', price:900, icon:'📅', desc:'Season and weather notes for every species in the Fishopedia.'},
+  {id:'net', name:'Drift Net', price:1500, icon:'🥅', desc:'When a line would snap, sometimes the net saves the day. (Once per fish.)'},
+  {id:'hat', name:'E.\u2019s Lucky Hat', price:0, secret:true, icon:'🎩', desc:'An old friend\u2019s old hat. Rare fish seem to tip their fins to it.'},
+];
+
+/* ---------------- SEASONS & WEATHER ---------------- */
+const SEASONS = [
+  {id:'spring', label:'Spring', icon:'🌸', tree:'#5a9a4a', land:'#5e8a42', k:0.45},
+  {id:'summer', label:'Summer', icon:'☀️', tree:null,      land:null,      k:0},
+  {id:'autumn', label:'Autumn', icon:'🍂', tree:'#a4622a', land:'#8a6e36', k:0.55},
+  {id:'winter', label:'Winter', icon:'❄️', tree:'#b8c8cc', land:'#c2ccd0', k:0.55},
+];
+const SEASON_BY_ID = Object.fromEntries(SEASONS.map(s=>[s.id,s]));
+const SEASON_DAYS = 3; // in-game days per season
+function curSeason(){ return SEASONS[Math.floor(((S.day||1)-1)/SEASON_DAYS) % 4]; }
+
+const WX_META = {
+  clear:{icon:'🌤', label:'Clear'},
+  rain: {icon:'🌧', label:'Rain'},
+  fog:  {icon:'🌫', label:'Fog'},
+};
+function wxLabel(w){ // rain reads as snow in winter
+  if(w==='rain' && curSeason().id==='winter') return {icon:'🌨', label:'Snow'};
+  return WX_META[w];
+}
+
+function hex2rgb(h){ return [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)]; }
+function rgb2hex(r,g,b){ return '#'+[r,g,b].map(v=>clamp(Math.round(v),0,255).toString(16).padStart(2,'0')).join(''); }
+function colorLerp(a, b, t){
+  const A=hex2rgb(a), B=hex2rgb(b);
+  return rgb2hex(lerp(A[0],B[0],t), lerp(A[1],B[1],t), lerp(A[2],B[2],t));
+}
+function seasonCol(base, kind){ // kind: 'tree'|'land'
+  const s = curSeason();
+  return s[kind] ? colorLerp(base, s[kind], s.k) : base;
+}
+function hueShift(h, deg){
+  let [r,g,b] = hex2rgb(h).map(v=>v/255);
+  const mx=Math.max(r,g,b), mn=Math.min(r,g,b); let hh=0, l=(mx+mn)/2, d=mx-mn;
+  const sa = d===0?0 : d/(1-Math.abs(2*l-1));
+  if(d!==0){ if(mx===r) hh=((g-b)/d)%6; else if(mx===g) hh=(b-r)/d+2; else hh=(r-g)/d+4; }
+  hh = (hh*60 + deg + 360) % 360;
+  const c=(1-Math.abs(2*l-1))*sa, x=c*(1-Math.abs((hh/60)%2-1)), m=l-c/2;
+  let R,G2,B2;
+  if(hh<60){R=c;G2=x;B2=0;}else if(hh<120){R=x;G2=c;B2=0;}else if(hh<180){R=0;G2=c;B2=x;}
+  else if(hh<240){R=0;G2=x;B2=c;}else if(hh<300){R=x;G2=0;B2=c;}else{R=c;G2=0;B2=x;}
+  return rgb2hex((R+m)*255,(G2+m)*255,(B2+m)*255);
+}
+
+/* ---------------- ACHIEVEMENTS ---------------- */
+const dexCountLoc = (s, loc) => FISH.filter(f=>f.loc===loc && !f.hidden && s.dex[f.id]).length;
+const locTotal = loc => FISH.filter(f=>f.loc===loc && !f.hidden).length;
+const dexTotal = () => FISH.filter(f => (f.loc==='still' ? S.unlocked.includes('still') : !f.hidden) || S.dex[f.id]).length;
+const ACH = [
+  {id:'first', icon:'🐟', name:'First Splash', desc:'Catch your very first fish.', test:s=>s.totalCatches>=1},
+  {id:'ten', icon:'🪣', name:'Getting Hooked', desc:'Catch 10 fish.', test:s=>s.totalCatches>=10},
+  {id:'fifty', icon:'🛶', name:'Fifty Fathoms', desc:'Catch 50 fish.', test:s=>s.totalCatches>=50},
+  {id:'hundred', icon:'🏆', name:'Century Angler', desc:'Catch 100 fish.', test:s=>s.totalCatches>=100},
+  {id:'casts', icon:'🌀', name:'A Hundred Casts', desc:'Cast your line 100 times.', test:s=>s.casts>=100},
+  {id:'pondm', icon:'🌿', name:'Pond Master', desc:'Catch every species in Willow Pond.', test:s=>dexCountLoc(s,'pond')===locTotal('pond')},
+  {id:'riverm', icon:'🏞', name:'Creek Master', desc:'Catch every species in Cedar Creek.', test:s=>dexCountLoc(s,'river')===locTotal('river')},
+  {id:'lakem', icon:'🌲', name:'Lake Master', desc:'Catch every species in Pinefall Lake.', test:s=>dexCountLoc(s,'lake')===locTotal('lake')},
+  {id:'coastm', icon:'🌊', name:'Coast Master', desc:'Catch every species on Saltwhisper Coast.', test:s=>dexCountLoc(s,'coast')===locTotal('coast')},
+  {id:'dex', icon:'📖', name:'The Complete Angler', desc:'Fill the entire Fishopedia.', test:s=>FISH.filter(f=>!f.hidden).every(f=>s.dex[f.id])},
+  {id:'night', icon:'🦉', name:'Night Owl', desc:'Catch a fish under the stars.', test:s=>!!s.flags.night},
+  {id:'dawn', icon:'🐓', name:'Early Bird', desc:'Catch a fish at dawn.', test:s=>!!s.flags.dawn},
+  {id:'big', icon:'📏', name:'The Big One', desc:'Land a fish at 90%+ of its species\u2019 max size.', test:s=>!!s.flags.big},
+  {id:'legend', icon:'👑', name:'Stuff of Legends', desc:'Catch any legendary fish.', test:s=>FISH.some(f=>f.r===5&&s.dex[f.id])},
+  {id:'fourleg', icon:'🌟', name:'Keeper of Tales', desc:'Catch every legendary fish.', test:s=>FISH.filter(f=>f.r===5&&!f.hidden).every(f=>s.dex[f.id])},
+  {id:'litter', icon:'🗑', name:'Litter Picker', desc:'Reel in 10 pieces of junk. Thanks for cleaning up.', test:s=>s.junkCount>=10},
+  {id:'bottle', icon:'🍾', name:'Dear Reader', desc:'Find the message in a bottle.', test:s=>!!s.flags.bottle},
+  {id:'tycoon', icon:'💰', name:'Bait Shop Tycoon', desc:'Earn 5,000 coins over your career.', test:s=>s.lifetimeCoins>=5000},
+  {id:'geared', icon:'✨', name:'Geared Up', desc:'Own the Mythril Rod.', test:s=>s.rods.includes('mythril')},
+  {id:'tackle', icon:'🧰', name:'Tackle Collector', desc:'Own every lure.', test:s=>LURES.every(l=>s.lures.includes(l.id))},
+  {id:'travel', icon:'🗺', name:'Wherever Water Goes', desc:'Unlock every fishing spot.', test:s=>Object.keys(LOCS).filter(k=>!LOCS[k].hidden).every(k=>s.unlocked.includes(k))},
+  {id:'bogm', icon:'🍄', name:'Bog Master', desc:'Catch every species in Murkwillow Bog.', test:s=>dexCountLoc(s,'bog')===locTotal('bog')},
+  {id:'shiny1', icon:'✦', name:'Something Shimmered', desc:'Catch a shiny fish.', test:s=>(s.shinies||0)>=1},
+  {id:'shiny5', icon:'💫', name:'Collector of Light', desc:'Catch 5 shiny fish.', test:s=>(s.shinies||0)>=5},
+  {id:'rainf', icon:'🌧', name:'Stormchaser', desc:'Catch a fish in the rain (or snow).', test:s=>!!s.flags.rain},
+  {id:'fogf', icon:'🌫', name:'Mistwalker', desc:'Catch a fish in the fog.', test:s=>!!s.flags.fog},
+  {id:'seasons', icon:'🍃', name:'A Year on the Water', desc:'Catch a fish in all four seasons.', test:s=>SEASONS.every(x=>s.flags.seasons&&s.flags.seasons[x.id])},
+  {id:'quest10', icon:'📋', name:'Local Hero', desc:'Complete 10 requests from the board.', test:s=>(s.questsDone||0)>=10},
+  {id:'quest25', icon:'📮', name:'Pillar of the Dock', desc:'Complete 25 requests.', test:s=>(s.questsDone||0)>=25},
+  {id:'mount1', icon:'🪧', name:'Wall of Fame', desc:'Mount a trophy in your cabin.', test:s=>Object.keys(s.trophies||{}).length>=1},
+  {id:'mount6', icon:'🏠', name:'Cozy Museum', desc:'Mount 6 trophies.', test:s=>Object.keys(s.trophies||{}).length>=6},
+  {id:'veteran', icon:'🌅', name:'Seasoned Angler', desc:'Fish into your 10th day.', test:s=>(s.day||1)>=10},
+  {id:'c250', icon:'⚓', name:'Old Salt', desc:'Catch 250 fish.', test:s=>s.totalCatches>=250},
+  {id:'streak5', icon:'🔥', name:'Hot Hands', desc:'Land 5 fish in a row without losing one.', test:s=>(s.bestStreak||0)>=5},
+  {id:'perfect', icon:'🎯', name:'Bullseye', desc:'Land a fish from a perfect cast.', test:s=>!!s.flags.perfect},
+  {id:'shadow', icon:'🐋', name:'Read the Water', desc:'Hook a fish you spotted cruising as a shadow.', test:s=>!!s.flags.shadow},
+  {id:'golden', icon:'✨', name:'Hour of Gold', desc:'Catch a fish during a Golden Hour.', test:s=>!!s.flags.golden},
+  {id:'bottles7', icon:'📜', name:'The Whole Story', desc:'Collect all seven letters from the bottles.', test:s=>(s.bottles||0)>=7},
+  {id:'echo', icon:'🌫', secret:true, name:'The Echo Answers', desc:'Catch the fish that shouldn\u2019t exist.', test:s=>!!s.dex['echo']},
+  {id:'cat1', icon:'🐱', name:'A Friend for the Quiet Hours', desc:'Share a catch with the dock cat.', test:s=>(s.catFed||0)>=1},
+  {id:'cat10', icon:'😺', name:'The Cat Decides You Stay', desc:'Feed the dock cat 10 fish.', test:s=>(s.catFed||0)>=10},
+  {id:'keep1', icon:'🐠', name:'Roommates', desc:'Keep a fish in your cabin aquarium.', test:s=>(s.aquarium||[]).length>=1 || !!s.flags.kept},
+  {id:'tank12', icon:'🛁', name:'Full House', desc:'Fill the aquarium to all 12 places.', test:s=>(s.aquarium||[]).length>=12},
+  {id:'derby1', icon:'🏆', name:'Derby Champion', desc:'Win a fishing derby.', test:s=>(s.derbyWins||0)>=1},
+  {id:'derby5', icon:'👑', name:'Local Legend', desc:'Win 5 fishing derbies.', test:s=>(s.derbyWins||0)>=5},
+  {id:'crossing', icon:'🛶', secret:true, name:'Across the Stillwater', desc:'Board the ferryman\u2019s boat.', test:s=>s.unlocked.includes('still')},
+  {id:'stillm', icon:'🕯', secret:true, name:'Keeper of Echoes', desc:'Catch every echo in the Stillwater.', test:s=>dexCountLoc(s,'still')===locTotal('still')},
+  {id:'efound', icon:'💌', secret:true, name:'What Happened to E.', desc:'Finish the story the bottles began.', test:s=>!!s.flags.efound},
+  {id:'icebreak', icon:'🧊', name:'Ice Breaker', desc:'Catch a fish through a hole in the ice.', test:s=>!!s.flags.ice},
+  {id:'skyfire', icon:'🌌', name:'Skyfire', desc:'Catch a fish beneath the aurora.', test:s=>!!s.flags.auroraCatch},
+  {id:'dropm', icon:'🌊', name:'Keeper of the Drop', desc:'Catch every species over the shelf edge.', test:s=>dexCountLoc(s,'drop')===locTotal('drop')},
+  {id:'midnight', icon:'🔦', name:'Where Light Goes to Rest', desc:'Catch a fish from the midnight zone.', test:s=>!!s.flags.midnight},
+  {id:'starfall', icon:'🌠', name:'Wish, Granted', desc:'Catch a fallen star before it fades.', test:s=>!!s.flags.star},
+  {id:'wishmade', icon:'💫', name:'Five Wishes', desc:'Craft the Celestial Lure.', test:s=>s.lures.includes('celestial')},
+  {id:'hummer', icon:'🎵', secret:true, name:'Four on the Floor', desc:'Catch the fish that listens \u2014 on the beat.', test:s=>!!s.dex['hummer']},
+  {id:'master', icon:'⭐', secret:true, name:'Master Angler', desc:'Complete the Fishopedia, land every legend, claim the license.', test:s=>!!s.master},
+];
+
+/* ============================================================
+   STATE + SAVE
+   ============================================================ */
+const SAVE_KEY = 'driftwood-save-v1';
+function defaultState(){
+  return {
+    coins:50, lifetimeCoins:0, casts:0, totalCatches:0, junkCount:0,
+    rods:['twig'], lures:['worm'], gear:[],
+    rod:'twig', lure:'worm',
+    unlocked:['pond'], loc:'pond',
+    dex:{},            // id -> {n, best}
+    ach:{},            // id -> true
+    flags:{},          // night, dawn, big, bottle, helped
+    muted:false,
+    timeT:0.22,        // 0..1 position in the day
+    v:2, day:1,
+    shinies:0, questsDone:0,
+    streak:0, bestStreak:0, bottles:0,
+    aquarium:[], catFed:0, derby:null, derbyWins:0,
+    starFrags:0, hummerMiss:0, master:false, masterOn:false, cotd:null,
+    trophies:{}, locCatch:{}, quests:null,
+  };
+}
+let S = defaultState();
+function save(){
+  try{ localStorage.setItem(SAVE_KEY, JSON.stringify(S)); }catch(e){ /* in-memory only */ }
+}
+function load(){
+  try{
+    const raw = localStorage.getItem(SAVE_KEY);
+    if(raw){ const d = JSON.parse(raw); S = Object.assign(defaultState(), d);
+      S.flags = d.flags||{}; S.dex = d.dex||{}; S.ach = d.ach||{};
+      S.trophies = d.trophies||{}; S.locCatch = d.locCatch||{};
+      S.flags.seasons = S.flags.seasons||{}; S.v = 3;
+      S.aquarium = d.aquarium||[];
+      if(S.flags.bottle && !(S.bottles>0)) S.bottles = 1; }
+  }catch(e){}
+}
+function resetSave(){
+  try{ localStorage.removeItem(SAVE_KEY); }catch(e){}
+  S = defaultState(); location.reload();
+}
+const has = (arr,id)=>arr.includes(id);
+const rodOf = ()=>RODS.find(r=>r.id===S.rod)||RODS[0];
+const lureOf = ()=>LURES.find(l=>l.id===S.lure)||LURES[0];
+const hasGear = id => S.gear.includes(id);
+
+/* ---- day/night ---- */
+const DAY_LENGTH = 480; // real seconds per in-game day
+function phaseOf(t){
+  t = ((t%1)+1)%1;
+  if(t < 0.14) return 'dawn';
+  if(t < 0.55) return 'day';
+  if(t < 0.70) return 'dusk';
+  return 'night';
+}
+function nextPhaseT(t){
+  const edges = [0.14, 0.55, 0.70, 1.0];
+  for(const e of edges) if(t < e) return e % 1 === 0 ? 1.0 : e;
+  return 1.0;
+}
+
+/* ============================================================
+   AUDIO — tiny generative chiptune + sfx
+   ============================================================ */
+const A = {
+  ctx:null, master:null, music:null, sfxg:null, started:false,
+  step:0, nextTime:0, timer:null, melNote:2,
+  init(){
+    if(this.ctx) return;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(!AC) return;
+    this.ctx = new AC();
+    this.master = this.ctx.createGain(); this.master.gain.value = S.muted?0:1;
+    this.master.connect(this.ctx.destination);
+    this.music = this.ctx.createGain(); this.music.gain.value = 0.8; this.music.connect(this.master);
+    this.sfxg = this.ctx.createGain(); this.sfxg.gain.value = 0.9; this.sfxg.connect(this.master);
+    // gentle water ambience: looping filtered noise
+    const len = this.ctx.sampleRate * 2;
+    const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+    const d = buf.getChannelData(0);
+    for(let i=0;i<len;i++) d[i] = (Math.random()*2-1) * (0.6 + 0.4*Math.sin(i/9000));
+    const src = this.ctx.createBufferSource(); src.buffer = buf; src.loop = true;
+    const lp = this.ctx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value = 420;
+    const ag = this.ctx.createGain(); ag.gain.value = 0.018;
+    src.connect(lp); lp.connect(ag); ag.connect(this.master); src.start();
+    // music scheduler
+    this.nextTime = this.ctx.currentTime + 0.1;
+    this.timer = setInterval(()=>this.schedule(), 90);
+  },
+  toggleMute(){
+    S.muted = !S.muted; save();
+    if(this.master) this.master.gain.value = S.muted?0:1;
+    $('#muteBtn').textContent = S.muted ? '♪ Off' : '♪ On';
+  },
+  // --- music ---
+  SCALE:[261.63, 293.66, 329.63, 392.0, 440.0, 523.25, 587.33], // C maj pentatonic-ish
+  BASS:[[65.41,98.0],[55.0,82.41],[87.31,130.81],[98.0,73.42]],  // C, A, F, G roots
+  schedule(){
+    if(!this.ctx) return;
+    const STEP = 0.32; // ~94bpm eighths, lazy
+    while(this.nextTime < this.ctx.currentTime + 0.35){
+      this.playStep(this.step, this.nextTime, STEP);
+      this.step = (this.step+1) % 64;
+      this.nextTime += STEP;
+    }
+  },
+  started_music(){ return !!this.ctx; },
+  onBeat(){
+    if(!this.ctx || this.beatRef===undefined) return false;
+    const B = 0.64;
+    const m = ((this.ctx.currentTime - this.beatRef) % B + B) % B;
+    return Math.min(m, B - m) <= 0.1;
+  },
+  playStep(st, t, dur){
+    if(st % 2 === 0) this.beatRef = t;
+    const bar = Math.floor(st/8) % 8;
+    const beat = st % 8;
+    // bass: triangle on beats 0 and 4
+    if(beat===0 || beat===4){
+      const root = this.BASS[Math.floor(bar/2)%4][beat===0?0:1];
+      this.tone('triangle', root, t, dur*1.9, 0.075, 0.02);
+    }
+    // soft hat on offbeats
+    if(beat%2===1) this.noiseHit(t, 0.05, 0.012, 5200);
+    // melody: gentle random walk, ~55% of steps, rests at bar ends
+    if(beat!==7 && Math.random()<0.55){
+      this.melNote = clamp(this.melNote + pick([-1,-1,0,1,1,2,-2]), 0, this.SCALE.length-1);
+      const f = this.SCALE[this.melNote] * (Math.random()<0.12?2:1);
+      this.tone('square', f, t, dur*0.92, 0.035, 0.015);
+    }
+    // sparkle bell once per 2 bars
+    if(st%16===12 && Math.random()<0.6)
+      this.tone('sine', pick(this.SCALE)*2, t, dur*2.4, 0.03, 0.05);
+    if(typeof GH !== 'undefined' && GH.active && Math.random() < 0.45)
+      this.tone('sine', pick(this.SCALE)*4, t, dur*1.8, 0.045, 0.02);
+  },
+  tone(type, freq, t, dur, vol, atk){
+    if(!this.ctx) return;
+    const o = this.ctx.createOscillator(); o.type = type; o.frequency.setValueAtTime(freq, t);
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(vol, t+atk);
+    g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+    o.connect(g); g.connect(this.music); o.start(t); o.stop(t+dur+0.05);
+  },
+  noiseHit(t, dur, vol, hp){
+    if(!this.ctx) return;
+    const n = Math.floor(this.ctx.sampleRate*dur);
+    const b = this.ctx.createBuffer(1,n,this.ctx.sampleRate);
+    const d = b.getChannelData(0);
+    for(let i=0;i<n;i++) d[i] = (Math.random()*2-1)*(1-i/n);
+    const s = this.ctx.createBufferSource(); s.buffer = b;
+    const f = this.ctx.createBiquadFilter(); f.type='highpass'; f.frequency.value=hp;
+    const g = this.ctx.createGain(); g.gain.value = vol;
+    s.connect(f); f.connect(g); g.connect(this.music); s.start(t);
+  },
+  // --- sfx (routed to sfx gain) ---
+  fx(type, freq, dur, vol, slideTo){
+    if(!this.ctx) return;
+    const t = this.ctx.currentTime;
+    const o = this.ctx.createOscillator(); o.type = type;
+    o.frequency.setValueAtTime(freq, t);
+    if(slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t+dur);
+    const g = this.ctx.createGain();
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+    o.connect(g); g.connect(this.sfxg); o.start(t); o.stop(t+dur+0.05);
+  },
+  sCast(){ this.fx('square', 280, 0.18, 0.05, 760); },
+  sPerfect(){ this.fx('sine', 880, 0.09, 0.07, 1320); this.fx('triangle', 1320, 0.16, 0.05); },
+  sPlop(){ this.fx('sine', 240, 0.14, 0.09, 70); this.noiseSfx(0.06, 0.05, 900); },
+  sNibble(){ this.fx('square', 500, 0.05, 0.03); },
+  sBite(){ this.fx('square', 660, 0.08, 0.07); setTimeout(()=>this.fx('square', 920, 0.1, 0.07), 80); },
+  sFail(){ this.fx('sawtooth', 300, 0.3, 0.06, 120); },
+  sBuy(){ this.fx('square', 880, 0.08, 0.06); setTimeout(()=>this.fx('square', 1320, 0.12, 0.06), 70); },
+  sCatch(r){
+    const seq = r>=5 ? [523,659,784,1046,1318,1568] : r>=4 ? [523,659,784,1046,1318] : r>=3 ? [523,659,784,1046] : [523,659,784];
+    seq.forEach((f,i)=>setTimeout(()=>this.fx('square', f, 0.16, 0.06), i*95));
+  },
+  sAch(){ [659,880,1108,1318].forEach((f,i)=>setTimeout(()=>this.fx('triangle', f, 0.2, 0.07), i*110)); },
+  noiseSfx(dur, vol, hp){
+    if(!this.ctx) return;
+    this.noiseHitSfx(this.ctx.currentTime, dur, vol, hp);
+  },
+  noiseHitSfx(t, dur, vol, hp){
+    const n = Math.floor(this.ctx.sampleRate*dur);
+    const b = this.ctx.createBuffer(1,n,this.ctx.sampleRate);
+    const d = b.getChannelData(0);
+    for(let i=0;i<n;i++) d[i] = (Math.random()*2-1)*(1-i/n);
+    const s = this.ctx.createBufferSource(); s.buffer = b;
+    const f = this.ctx.createBiquadFilter(); f.type='highpass'; f.frequency.value=hp;
+    const g = this.ctx.createGain(); g.gain.value = vol;
+    s.connect(f); f.connect(g); g.connect(this.sfxg); s.start(t);
+  },
+};
+
+/* ============================================================
+   SPRITES — procedural pixel fish
+   ============================================================ */
+function hashSeed(str){ let h=2166136261; for(let i=0;i<str.length;i++){h^=str.charCodeAt(i); h=Math.imul(h,16777619);} return h>>>0; }
+function mulberry(seed){ return function(){ seed|=0; seed=(seed+0x6D2B79F5)|0; let t=Math.imul(seed^(seed>>>15),1|seed); t=(t+Math.imul(t^(t>>>7),61|t))^t; return ((t^(t>>>14))>>>0)/4294967296; }; }
+
+const spriteCache = {};
+function fishSprite(f, silhouette, shiny){
+  const key = f.id + (silhouette?'_s':'') + (shiny?'_sh':'');
+  if(spriteCache[key]) return spriteCache[key];
+  let a = f.art;
+  if(shiny && !silhouette){
+    a = Object.assign({}, a, {
+      c1: hueShift(a.c1, 150), c2: hueShift(a.c2, 150),
+      c3: colorLerp(hueShift(a.c3, 150), '#ffe9a0', 0.45),
+      pc: colorLerp(a.pc, '#ffd866', 0.6),
+    });
+  }
+  const L = a.L, H = a.H;
+  const tail = Math.max(3, Math.round(H*0.6));
+  const bill = a.bill ? 6 : 0;
+  const W = tail + L + bill + 1;
+  const Hh = H + 6;
+  const c = document.createElement('canvas'); c.width = W; c.height = Hh;
+  const g = c.getContext('2d');
+  const midY = Math.floor(Hh/2);
+  const rand = mulberry(hashSeed(f.id));
+  const tops = [], bots = [];
+  // body (head on right)
+  for(let x=0;x<L;x++){
+    const t = x/(L-1);
+    let h = Math.pow(Math.sin(Math.PI*(0.10 + 0.84*t)), 0.8) * H/2;
+    h = Math.max(1, h);
+    const px = tail + x;
+    const top = Math.round(midY - h), bot = Math.round(midY + h);
+    tops[x]=top; bots[x]=bot;
+    for(let y=top; y<=bot; y++){
+      const fr = (y-top) / Math.max(1, bot-top);
+      g.fillStyle = fr < 0.32 ? a.c2 : fr > 0.72 ? a.c3 : a.c1;
+      g.fillRect(px, y, 1, 1);
+    }
+  }
+  // tail (left), widest at left edge
+  for(let x=0;x<tail;x++){
+    const h = Math.max(1, Math.round((1 - x/tail) * H*0.45) + (x===tail-1?0:1));
+    for(let y=midY-h; y<=midY+h; y++){
+      if(a.tail==='fork' && x < tail-1 && Math.abs(y-midY) < Math.max(1,h*0.4)) continue;
+      if(a.tail==='point' && y > midY + Math.max(0,h-1)) continue;
+      g.fillStyle = a.c2; g.fillRect(x, y, 1, 1);
+    }
+  }
+  // dorsal fin
+  const finH = a.fin==='big' ? 3 : 1;
+  const f0 = Math.round(L*0.32), f1 = Math.round(L*0.62);
+  for(let x=f0; x<=f1; x++){
+    const bump = a.fin==='big'
+      ? finH - Math.round(Math.abs((x-(f0+f1)/2)/((f1-f0)/2)) * 1)
+      : 1 + (x%3===0?1:0);
+    g.fillStyle = a.c2;
+    g.fillRect(tail+x, tops[x]-bump, 1, bump);
+  }
+  // pelvic fin
+  const p0 = Math.round(L*0.45);
+  g.fillStyle = a.c2;
+  g.fillRect(tail+p0, bots[p0]+1, 2, 1);
+  // patterns
+  if(a.pat==='stripes'){
+    g.fillStyle = a.pc;
+    for(let x=2;x<L-3;x+=3){
+      const top=tops[x], bot=bots[x];
+      const h = bot-top;
+      g.fillRect(tail+x, top+Math.round(h*0.2), 1, Math.max(1, Math.round(h*0.6)));
+    }
+  } else if(a.pat==='band'){
+    g.fillStyle = a.pc;
+    for(let x=1;x<L-2;x++) g.fillRect(tail+x, midY, 1, 1);
+  } else if(a.pat==='spots'){
+    g.fillStyle = a.pc;
+    const n = Math.round(L*0.5);
+    for(let i=0;i<n;i++){
+      const x = 1+Math.floor(rand()*(L-4));
+      const y = tops[x]+1+Math.floor(rand()*Math.max(1,(bots[x]-tops[x]-2)));
+      g.fillRect(tail+x, y, rand()<0.4?2:1, 1);
+    }
+  } else if(a.pat==='speckle'){
+    g.fillStyle = a.pc;
+    const n = Math.round(L*0.9);
+    for(let i=0;i<n;i++){
+      const x = 1+Math.floor(rand()*(L-3));
+      const y = tops[x]+1+Math.floor(rand()*Math.max(1,(bots[x]-tops[x]-1)));
+      g.fillRect(tail+x, y, 1, 1);
+    }
+  }
+  // bill (marlin)
+  if(bill){
+    g.fillStyle = a.c2;
+    g.fillRect(tail+L, midY-1, bill, 1);
+  }
+  // eye
+  const ex = tail + L - 3, eyTop = tops[L-3];
+  const ey = Math.round(lerp(eyTop, bots[L-3], 0.35));
+  g.fillStyle = '#fff'; g.fillRect(ex, ey, 1, 1);
+  g.fillStyle = '#101020'; g.fillRect(ex+0, ey, 1, 1);
+  g.fillStyle = '#fff'; g.fillRect(ex-1, ey-1, 1, 1);
+  if(silhouette){
+    g.globalCompositeOperation = 'source-atop';
+    g.fillStyle = '#161c34';
+    g.fillRect(0,0,W,Hh);
+    g.globalCompositeOperation = 'source-over';
+  }
+  spriteCache[key] = c;
+  return c;
+}
+function drawFishInto(canvas, f, silhouette, shiny){
+  const g = canvas.getContext('2d');
+  g.imageSmoothingEnabled = false;
+  g.clearRect(0,0,canvas.width,canvas.height);
+  const sp = fishSprite(f, silhouette, shiny);
+  const sc = Math.max(1, Math.floor(Math.min(canvas.width/(sp.width+4), canvas.height/(sp.height+2))));
+  const w = sp.width*sc, h = sp.height*sc;
+  g.drawImage(sp, Math.floor((canvas.width-w)/2), Math.floor((canvas.height-h)/2), w, h);
+}
+
+/* ============================================================
+   SCENE
+   ============================================================ */
+const cv = $('#scene');
+const ctx = cv.getContext('2d');
+ctx.imageSmoothingEnabled = false;
+const W = 320, HH = 180, WL = 92; // waterline
+
+function hex2rgb(h){ h=h.replace('#',''); return [parseInt(h.slice(0,2),16),parseInt(h.slice(2,4),16),parseInt(h.slice(4,6),16)]; }
+function mix(h1,h2,t){
+  const a=hex2rgb(h1), b=hex2rgb(h2);
+  return `rgb(${Math.round(lerp(a[0],b[0],t))},${Math.round(lerp(a[1],b[1],t))},${Math.round(lerp(a[2],b[2],t))})`;
+}
+// sky keyframes around the day: [t, top, bottom, ambient 0..1]
+const SKY = [
+  [0.00, '#241c4a', '#e0794f', 0.45],
+  [0.07, '#5a4a8c', '#f0a06a', 0.65],
+  [0.16, '#4a90c8', '#a8d8e8', 1.0],
+  [0.45, '#4a98d0', '#b8e0ea', 1.0],
+  [0.58, '#6a4a8c', '#f0a05a', 0.7],
+  [0.68, '#2a2050', '#7a4060', 0.42],
+  [0.78, '#0e1430', '#283454', 0.22],
+  [0.95, '#0e1430', '#283454', 0.22],
+  [1.00, '#241c4a', '#e0794f', 0.45],
+];
+function skyAt(t){
+  t = ((t%1)+1)%1;
+  for(let i=0;i<SKY.length-1;i++){
+    if(t>=SKY[i][0] && t<=SKY[i+1][0]){
+      const f = (t-SKY[i][0])/(SKY[i+1][0]-SKY[i][0] || 1);
+      return { top:mix(SKY[i][1],SKY[i+1][1],f), bot:mix(SKY[i][2],SKY[i+1][2],f), amb:lerp(SKY[i][3],SKY[i+1][3],f) };
+    }
+  }
+  return { top:SKY[0][1], bot:SKY[0][2], amb:SKY[0][3] };
+}
+const stars = Array.from({length:46},()=>({x:Math.random()*W, y:Math.random()*70, tw:Math.random()*6}));
+const clouds = Array.from({length:4},(_,i)=>({x:Math.random()*W, y:8+i*13+Math.random()*6, w:26+Math.random()*30, v:1.4+Math.random()*1.6}));
+let ripples = []; // {x,y,r,life}
+let sparkles = []; // jumping fish twinkle {x,t}
+
+function shade(hexCol, amb){
+  const c = hex2rgb(hexCol);
+  const k = 0.25 + 0.75*amb;
+  return `rgb(${Math.round(c[0]*k)},${Math.round(c[1]*k)},${Math.round(c[2]*k)})`;
+}
+
+function drawScene(now, dt){
+  const t = S.timeT;
+  const sky = S.loc==='still'
+    ? { top:'#38324e', bot:'#6a5c84', amb:0.52 }
+    : skyAt(t);
+  const L = LOCS[S.loc];
+  const amb = sky.amb * (G.wx==='fog' ? 0.92 : G.wx==='rain' ? 0.86 : 1);
+  // sky
+  const grad = ctx.createLinearGradient(0,0,0,WL);
+  grad.addColorStop(0, sky.top); grad.addColorStop(1, sky.bot);
+  ctx.fillStyle = grad; ctx.fillRect(0,0,W,WL);
+  // stars
+  if(amb < 0.55){
+    const a = clamp((0.55-amb)/0.35, 0, 1);
+    for(const st of stars){
+      const tw = 0.5 + 0.5*Math.sin(now/400 + st.tw);
+      ctx.fillStyle = `rgba(232,236,255,${(0.25+0.75*tw)*a})`;
+      ctx.fillRect(Math.floor(st.x), Math.floor(st.y), 1, 1);
+    }
+  }
+  // sun / moon arc
+  {
+    const dayArc = clamp((t-0.02)/0.66, 0, 1);
+    const sx = lerp(30, W-30, dayArc);
+    const sy = WL - 14 - Math.sin(dayArc*Math.PI)*62;
+    if(t>0.0 && t<0.7){
+      ctx.fillStyle = t<0.14||t>0.55 ? '#f8b04a' : '#f8e8a0';
+      ctx.fillRect(Math.floor(sx)-3, Math.floor(sy)-3, 6, 6);
+      ctx.fillRect(Math.floor(sx)-4, Math.floor(sy)-2, 8, 4);
+    } else {
+      const nArc = clamp((t-0.7)/0.3, 0, 1);
+      const mx = lerp(26, W-26, nArc), my = WL-16-Math.sin(nArc*Math.PI)*58;
+      ctx.fillStyle = '#e8ecf4';
+      ctx.fillRect(Math.floor(mx)-3, Math.floor(my)-3, 6, 6);
+      ctx.fillRect(Math.floor(mx)-4, Math.floor(my)-2, 8, 4);
+      ctx.fillStyle = sky.top;
+      ctx.fillRect(Math.floor(mx)-1, Math.floor(my)-2, 4, 4);
+    }
+  }
+  // clouds
+  for(const c of clouds){
+    c.x += c.v*dt; if(c.x > W+40) c.x = -50;
+    ctx.fillStyle = `rgba(255,255,255,${0.12+0.38*amb})`;
+    const x = Math.floor(c.x), y = Math.floor(c.y);
+    ctx.fillRect(x, y, Math.floor(c.w), 4);
+    ctx.fillRect(x+4, y-3, Math.floor(c.w*0.6), 3);
+    ctx.fillRect(x+8, y+4, Math.floor(c.w*0.5), 3);
+  }
+  // far hills / treeline (cached — repainted only when loc/season/light changes)
+  const tk = S.loc + '|' + curSeason().id + '|' + Math.round(amb*24);
+  if(tk !== terraKey){ terraKey = tk; renderTerrain(amb); }
+  ctx.drawImage(terraC, 0, 0);
+  // water
+  ctx.fillStyle = shade(L.water, amb);
+  ctx.fillRect(0, WL, W, HH-WL);
+  ctx.fillStyle = shade(L.waterDeep, amb);
+  ctx.fillRect(0, WL+34, W, HH-WL-34);
+  // cruising shadows — read the water
+  for(const sh of shadows){
+    const sp = fishSprite(sh.f, true);
+    ctx.save();
+    ctx.globalAlpha = 0.30 + 0.06*Math.sin(now/320 + sh.ph);
+    ctx.translate(Math.floor(sh.x), Math.floor(sh.y + Math.sin(now/700 + sh.ph)*1.5));
+    if(sh.vx < 0) ctx.scale(-1, 1);
+    ctx.drawImage(sp, -Math.floor(sp.width/2), -Math.floor(sp.height/2));
+    ctx.restore();
+    ctx.globalAlpha = 1;
+  }
+  // frozen surface
+  if(iced()){
+    ctx.fillStyle = `rgba(214,228,240,${0.42 + 0.14*amb})`;
+    ctx.fillRect(0, WL, W, HH-WL);
+    ctx.fillStyle = `rgba(240,248,255,${0.25 + 0.2*amb})`;
+    ctx.fillRect(0, WL, W, 3);
+    // cracks (stable per location)
+    ctx.strokeStyle = `rgba(160,185,205,${0.35})`;
+    ctx.lineWidth = 1;
+    const cr = mulberry(hashSeed('ice'+S.loc+(S.day||1)));
+    for(let i=0;i<5;i++){
+      let cx0 = 20 + cr()*280, cy0 = WL+6 + cr()*(HH-WL-16);
+      ctx.beginPath(); ctx.moveTo(cx0, cy0);
+      for(let sgm=0; sgm<3; sgm++){ cx0 += (cr()-0.5)*36; cy0 += (cr()-0.4)*14; ctx.lineTo(cx0, cy0); }
+      ctx.stroke();
+    }
+    // the hole
+    if(G.hole){
+      ctx.fillStyle = shade(L.waterDeep, amb);
+      ctx.beginPath(); ctx.ellipse(G.hole.x, WL+7, 7, 3, 0, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = `rgba(240,248,255,0.6)`;
+      ctx.beginPath(); ctx.ellipse(G.hole.x, WL+7, 8, 3.6, 0, 0, Math.PI*2); ctx.stroke();
+    }
+    // aiming cursor
+    if(G.phase==='aiming'){
+      const ax = Math.floor(G.aim.x);
+      const onHole = G.hole && Math.abs(G.aim.x - G.hole.x) < 6;
+      ctx.fillStyle = onHole ? '#7dc95e' : '#f2c14e';
+      ctx.fillRect(ax-3, WL+2, 7, 1); ctx.fillRect(ax, WL-1, 1, 7);
+    }
+    // drilling ring
+    if(G.phase==='drilling'){
+      const dx = G.drill.x, pr = G.drill.t/1.9;
+      ctx.strokeStyle = '#f2c14e';
+      ctx.beginPath(); ctx.arc(dx, WL+7, 6, -Math.PI/2, -Math.PI/2 + pr*Math.PI*2); ctx.stroke();
+      if(Math.random() < dt*24){
+        ctx.fillStyle = '#e8f2fa';
+        ctx.fillRect(Math.floor(dx + rnd(-5,5)), Math.floor(WL + rnd(0,6)), 1, 1);
+      }
+    }
+  }
+  // bubbling hotspot
+  if(hotspot && !iced()){
+    const h = hotspot;
+    for(let i=0;i<3;i++){
+      const ph = ((now/900) + i/3) % 1;
+      ctx.strokeStyle = `rgba(220,240,250,${0.30*(1-ph)})`;
+      ctx.beginPath();
+      ctx.ellipse(h.x, h.y, 4+ph*16, (4+ph*16)*0.32, 0, 0, Math.PI*2);
+      ctx.stroke();
+    }
+    for(let i=0;i<4;i++){
+      const bp = ((now/600) + i*0.27) % 1;
+      ctx.fillStyle = `rgba(230,245,252,${0.55*(1-bp)})`;
+      ctx.fillRect(Math.floor(h.x + Math.sin(i*2.6)*6), Math.floor(h.y - bp*10), 1, 1);
+    }
+  }
+  // shimmer
+  for(let row=0; row<8; row++){
+    const y = WL + 4 + row*10;
+    const off = (now/ (60+row*14)) % 24;
+    ctx.fillStyle = `rgba(255,255,255,${(0.05 + 0.06*amb)*(1-row*0.09)})`;
+    for(let x=-24; x<W; x+=24){
+      ctx.fillRect(Math.floor(x+off + (row%2)*12), y, 9, 1);
+    }
+  }
+  // constellations on clear nights
+  if(phaseOf(S.timeT)==='night' && G.wx==='clear' && S.loc!=='still'){
+    const cr = mulberry(hashSeed('stars'+(S.day||1)));
+    for(let c=0;c<3;c++){
+      const bx = 30 + cr()*250, by = 8 + cr()*40, n = 4 + Math.floor(cr()*2);
+      let px = bx, py = by;
+      for(let i=0;i<n;i++){
+        const nx = bx + (cr()-0.5)*44, ny = by + (cr()-0.5)*26;
+        ctx.strokeStyle = 'rgba(200,215,240,0.12)';
+        ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(nx, ny); ctx.stroke();
+        ctx.fillStyle = `rgba(235,242,255,${0.5 + 0.3*Math.sin(now/900 + i + c*3)})`;
+        ctx.fillRect(Math.floor(nx), Math.floor(ny), 1, 1);
+        px = nx; py = ny;
+      }
+    }
+  }
+  // falling star + landing glow
+  if(STAR.falling > 0){
+    const fp = 1 - STAR.falling/1.4;
+    const sx = STAR.fx - fp*60, sy = STAR.fy + fp*(WL - STAR.fy);
+    ctx.fillStyle = '#fff8dc';
+    ctx.fillRect(Math.floor(sx), Math.floor(sy), 2, 2);
+    for(let i=1;i<5;i++){
+      ctx.fillStyle = `rgba(255,240,190,${0.5 - i*0.1})`;
+      ctx.fillRect(Math.floor(sx + i*2.4), Math.floor(sy - i*2.2), 1, 1);
+    }
+  }
+  if(STAR.active){
+    const gp = 0.5 + 0.5*Math.sin(now/300);
+    ctx.fillStyle = `rgba(255,238,170,${0.28 + 0.2*gp})`;
+    ctx.beginPath(); ctx.ellipse(STAR.tx, WL+8, 9 + gp*2, 3.4, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = `rgba(255,248,220,${0.7})`;
+    ctx.fillRect(Math.floor(STAR.tx + Math.sin(now/210)*4), WL + 4 + Math.floor(Math.sin(now/340)*2), 1, 1);
+    if(STAR.t < 10 && Math.floor(now/300)%2){
+      ctx.fillStyle = 'rgba(255,238,170,0.5)';
+      ctx.fillRect(Math.floor(STAR.tx)-1, WL-2, 3, 1);
+    }
+  }
+  // aurora ribbons
+  if(AUR.active){
+    const cols = ['126,224,196','154,142,230','120,214,236'];
+    for(let b=0;b<3;b++){
+      ctx.fillStyle = `rgba(${cols[b]},${0.10 + 0.05*Math.sin(now/1300+b*2)})`;
+      for(let x=0;x<W;x+=4){
+        const yy = 16 + b*11 + Math.sin(x*0.03 + now/(900+b*250))*8 + Math.sin(x*0.011 + now/2100)*5;
+        ctx.fillRect(x, Math.floor(yy), 4, 9 + Math.floor(3*Math.sin(x*0.05+now/800)));
+      }
+    }
+  }
+  // moon/sun glint column
+  ctx.fillStyle = `rgba(255,240,200,${0.05+0.07*amb})`;
+  ctx.fillRect(W-110, WL, 26, HH-WL);
+  // fog banks
+  if(G.wx==='fog'){
+    for(let i=0;i<3;i++){
+      const fy = WL - 26 + i*16;
+      const off = (now/(700+i*300)) % (W+80);
+      ctx.fillStyle = `rgba(206,216,224,${0.07+0.03*amb})`;
+      ctx.fillRect(Math.floor(off)-80, fy, 150, 9);
+      ctx.fillRect(Math.floor(W - off), fy+5, 120, 7);
+    }
+    ctx.fillStyle = `rgba(200,210,220,${0.10+0.05*amb})`;
+    ctx.fillRect(0, WL-10, W, 22);
+  }
+  // ripples
+  ripples = ripples.filter(r=>r.life>0);
+  for(const r of ripples){
+    r.life -= dt; r.r += dt*16;
+    ctx.strokeStyle = `rgba(255,255,255,${0.5*r.life})`;
+    ctx.beginPath();
+    ctx.ellipse(r.x, r.y, r.r, r.r*0.32, 0, 0, Math.PI*2);
+    ctx.stroke();
+  }
+  // ambient fish jumps
+  if(Math.random() < dt*0.08) sparkles.push({x:rnd(120,W-20), t:0});
+  sparkles = sparkles.filter(s=>s.t<0.9);
+  for(const s of sparkles){
+    s.t += dt;
+    const y = WL+8 - Math.sin(s.t/0.9*Math.PI)*7;
+    ctx.fillStyle = 'rgba(220,235,245,0.85)';
+    ctx.fillRect(Math.floor(s.x), Math.floor(y), 2, 2);
+    if(s.t>0.85) ripples.push({x:s.x, y:WL+8, r:1, life:0.8});
+  }
+  // dock
+  // the ferryman waits at the edge of the dark
+  if(S.loc==='still'){
+    const fx = W-34, fy = WL-2;
+    ctx.fillStyle = shade('#2a2638', 0.8);
+    ctx.fillRect(fx-12, fy+4, 30, 4);                       // boat
+    ctx.fillRect(fx-10, fy+8, 26, 2);
+    ctx.fillStyle = shade('#3a3448', 0.8);
+    ctx.fillRect(fx+2, fy-8, 4, 12);                        // figure
+    ctx.fillRect(fx+1, fy-11, 6, 4);                        // hood
+    ctx.fillRect(fx+8, fy-14, 1, 14);                       // lantern pole
+    const lp = 0.5 + 0.5*Math.sin(now/700);
+    ctx.fillStyle = `rgba(255,222,140,${0.65+0.3*lp})`;
+    ctx.fillRect(fx+7, fy-16, 3, 3);                        // lantern
+    ctx.fillStyle = `rgba(255,222,140,${0.10+0.08*lp})`;
+    ctx.fillRect(fx+2, fy-21, 13, 13);                      // glow
+    // drifting motes
+    for(let i=0;i<5;i++){
+      const mp = ((now/(2400+i*700)) + i*0.21) % 1;
+      ctx.fillStyle = `rgba(220,214,240,${0.35*(1-Math.abs(mp-0.5)*2)})`;
+      ctx.fillRect(Math.floor(40 + mp*240 + Math.sin(now/900+i*2)*6), Math.floor(70 + Math.sin(now/1300+i)*14 + i*6), 1, 1);
+    }
+  } else if(S.dex && S.dex['echo'] && !S.unlocked.includes('still') && G.wx==='fog' && phaseOf(S.timeT)==='night'){
+    // a lantern, far off, for those who have caught the Echo
+    const lp = 0.5 + 0.5*Math.sin(now/800);
+    ctx.fillStyle = `rgba(255,222,140,${0.5+0.3*lp})`;
+    ctx.fillRect(W-14, WL-6, 2, 2);
+    ctx.fillStyle = `rgba(255,222,140,${0.07+0.05*lp})`;
+    ctx.fillRect(W-19, WL-11, 12, 12);
+    if(!G.lanternSeen){
+      G.lanternSeen = true;
+      toast('🕯 A lantern sways at the edge of the dark water. Someone is waiting. (Check ⛵ Travel.)');
+    }
+  }
+  drawDock(amb);
+  drawAngler(now, amb);
+  drawCat(now, amb);
+  // precipitation (rain, or snow in winter)
+  if(G.wx==='rain'){
+    const snow = curSeason().id==='winter';
+    if(wxP.length < (snow?70:60) && Math.random() < dt*120)
+      wxP.push({x:rnd(-10,W+10), y:rnd(-20,0), v:snow?rnd(14,24):rnd(120,160), ph:rnd(6.28)});
+    for(const p of wxP){
+      p.y += p.v*dt;
+      p.x += snow ? Math.sin(now/600 + p.ph)*10*dt : -22*dt;
+      if(snow){
+        ctx.fillStyle = 'rgba(240,246,252,0.85)';
+        ctx.fillRect(Math.floor(p.x), Math.floor(p.y), 1, 1);
+      } else {
+        ctx.fillStyle = `rgba(180,205,235,${0.35+0.25*amb})`;
+        ctx.fillRect(Math.floor(p.x), Math.floor(p.y), 1, 4);
+      }
+      if(p.y > HH){
+        if(!snow && p.y < HH+9 && Math.random()<0.12) ripples.push({x:p.x, y:rnd(WL+6,HH-8), r:1, life:0.3});
+        p.y = rnd(-20,-4); p.x = rnd(-10,W+10);
+      }
+    }
+  } else if(wxP.length) wxP.length = 0;
+  // golden hour wash
+  if(GH.active){
+    ctx.fillStyle = 'rgba(255,186,72,0.10)'; ctx.fillRect(0, 0, W, HH);
+    ctx.fillStyle = 'rgba(255,210,110,0.12)'; ctx.fillRect(0, WL, W, HH-WL);
+    for(let i=0;i<3;i++){
+      ctx.fillStyle = `rgba(255,226,140,${rnd(0.25, 0.7)})`;
+      ctx.fillRect(Math.floor(rnd(0, W)), Math.floor(rnd(WL, HH)), 1, 1);
+    }
+  }
+  drawLineAndBobber(now, dt, amb);
+  if(S.lure==='celestial' && (G.phase==='waiting' || G.phase==='bite') && Math.random() < 0.25 && !atDrop()){
+    ctx.fillStyle = '#ffe9a0';
+    ctx.fillRect(Math.floor(G.bob.x + rnd(-3,3)), Math.floor(G.bob.y - rnd(1,9)), 1, 1);
+  }
+  drawOverlays(now, dt);
+}
+
+/* ---- cached terrain layer (hills + trees, season-tinted) ---- */
+const terraC = document.createElement('canvas'); terraC.width = W; terraC.height = HH;
+const tctx = terraC.getContext('2d');
+let terraKey = '';
+let wxP = [];
+function renderTerrain(amb){
+  tctx.clearRect(0,0,W,HH);
+  const L = LOCS[S.loc];
+  const treeBase = seasonCol(L.tree, 'tree');
+  const winter = curSeason().id==='winter';
+  tctx.fillStyle = shade(treeBase, amb*0.9);
+  for(let x=0;x<W;x+=8){
+    const h = 12 + 7*Math.sin(x*0.05 + hashSeed(S.loc)%7) + 4*Math.sin(x*0.13+2);
+    tctx.fillRect(x, WL-Math.floor(h), 8, Math.floor(h));
+    if(winter){
+      tctx.fillStyle = `rgba(238,244,250,${0.5*amb+0.18})`;
+      tctx.fillRect(x, WL-Math.floor(h), 8, 1);
+      tctx.fillStyle = shade(treeBase, amb*0.9);
+    }
+  }
+  if(S.loc!=='coast'){
+    const tcol = shade(treeBase, amb*0.7);
+    for(let x=-4;x<W;x+=14){
+      const th = 16 + 8*Math.sin(x*0.7);
+      const bx = x + (Math.floor(x/14)%3)*3;
+      const ty = WL - Math.floor(th);
+      tctx.fillStyle = tcol;
+      for(let i=0;i<4;i++)
+        tctx.fillRect(bx + (3-i), ty + i*3, 2 + 2*i, 3);
+      tctx.fillRect(bx+3, ty+12, 2, Math.max(0, Math.floor(th)-12));
+      if(winter){
+        tctx.fillStyle = `rgba(238,244,250,${0.55*amb+0.2})`;
+        tctx.fillRect(bx+3, ty, 2, 1);
+        tctx.fillRect(bx+2, ty+3, 4, 1);
+        tctx.fillRect(bx+1, ty+6, 6, 1);
+      }
+    }
+  }
+}
+
+function drawDock(amb){
+  if(atDrop()){
+    // a small boat, riding the swell
+    const plank = shade('#8a6a42', amb), plankD = shade('#5e4628', amb);
+    ctx.fillStyle = plankD; ctx.fillRect(14, 99, 52, 3);
+    ctx.fillStyle = plank;  ctx.fillRect(10, 96, 60, 4);
+    ctx.fillRect(16, 93, 48, 3);
+    ctx.fillStyle = plankD; ctx.fillRect(38, 90, 3, 3);
+    ctx.fillStyle = shade('#473418', amb);
+    ctx.fillRect(10, 100, 4, 2); ctx.fillRect(64, 100, 4, 2);
+    return;
+  }
+  const plank = shade('#8a6a42', amb), plankD = shade('#5e4628', amb);
+  ctx.fillStyle = plank; ctx.fillRect(0, 96, 62, 9);
+  ctx.fillStyle = plankD;
+  for(let x=4;x<62;x+=10) ctx.fillRect(x, 96, 1, 9);
+  ctx.fillRect(0, 104, 62, 2);
+  // posts
+  ctx.fillStyle = plankD;
+  ctx.fillRect(8, 105, 4, 16); ctx.fillRect(50, 105, 4, 16);
+  ctx.fillStyle = shade('#473418', amb);
+  ctx.fillRect(8, 118, 4, 3); ctx.fillRect(50, 118, 4, 3);
+  // shore grass at left
+  ctx.fillStyle = shade(seasonCol(LOCS[S.loc].land, 'land'), amb);
+  ctx.fillRect(0, 88, 14, 9);
+  ctx.fillStyle = shade('#2e5424', amb);
+  for(let x=1;x<13;x+=3) ctx.fillRect(x, 84+ (x%2), 1, 4);
+}
+
+let anglerBob = 0;
+function drawAngler(now, amb){
+  const bx = 34, by = 84; // base position (sitting on dock)
+  anglerBob = Math.sin(now/900)*0.8;
+  const sk = shade('#e8b88a', amb), sh = shade('#3a6ea8', amb),
+        pt = shade('#5a4632', amb), ht = shade('#7a4a2a', amb);
+  // legs over dock edge
+  ctx.fillStyle = pt;
+  ctx.fillRect(bx+6, by+8, 3, 7); ctx.fillRect(bx+10, by+8, 3, 7);
+  ctx.fillStyle = shade('#2e2418', amb);
+  ctx.fillRect(bx+6, by+15, 3, 2); ctx.fillRect(bx+10, by+15, 3, 2);
+  // body
+  ctx.fillStyle = sh; ctx.fillRect(bx+3, by+1, 9, 8);
+  // arm to rod
+  ctx.fillStyle = sh; ctx.fillRect(bx+11, by+3, 4, 2);
+  ctx.fillStyle = sk; ctx.fillRect(bx+15, by+3, 2, 2);
+  // head + hat
+  const hy = by-6+Math.round(anglerBob*0.5);
+  ctx.fillStyle = sk; ctx.fillRect(bx+4, hy, 6, 6);
+  ctx.fillStyle = ht; ctx.fillRect(bx+2, hy-1, 10, 2);
+  ctx.fillRect(bx+3, hy-3, 8, 3);
+  ctx.fillStyle = '#101020'; ctx.fillRect(bx+8, hy+2, 1, 1);
+}
+
+/* ============================================================
+   GAME LOGIC
+   ============================================================ */
+let G = {
+  phase:'idle',        // idle | casting | flying | waiting | bite | reeling
+  holding:false,
+  castP:0, castDir:1,  // power meter
+  fly:null,            // {t, fromX, fromY, toX, toY}
+  bob:{x:0, y:WL+4},
+  waitT:0, nibbles:[], nextNib:0,
+  biteT:0, biteWin:1.0, hooked:null, junk:null,
+  reel:null,
+  msg:'',
+  wx:'clear', wxNext:'clear', wxT:90,
+  perfect:false, fromShadow:false, depth:0,
+};
+// Keep the rod seated at the angler's hand instead of floating high above it.
+const ROD_TIP = {x:54, y:70};
+
+function setHint(t){ $('#hint').textContent = t; $('#hint').style.display = t? 'block':'none'; }
+
+function bandOf(x){ return x < 150 ? 'near' : x < 230 ? 'mid' : 'far'; }
+
+/* ---- pick what bites ---- */
+function pickCatch(band){
+  const phase = phaseOf(S.timeT);
+  const lure = S.lure, rod = S.rod;
+  // junk chance
+  let junkP = S.loc==='still' ? 0 : 0.11;
+  if(lure==='golden' && junkP) junkP = 0.05;
+  if(Math.random() < junkP){
+    const j = Math.random() < ((S.bottles||0) < BOTTLE_MSGS.length ? 0.3 : 0.06) ? JUNK[JUNK.length-1] : pick(JUNK.slice(0,-1));
+    return { junk:j };
+  }
+  const pool = [];
+  for(const f of FISH){
+    if(f.loc !== S.loc) continue;
+    if(f.time && !f.time.includes(phase)) continue;
+    if(f.season && !f.season.includes(curSeason().id)) continue;
+    if(f.wx && G.wx !== f.wx) continue;
+    if(f.ice && !iced()) continue;
+    if(f.aurora && !AUR.active) continue;
+    // the true dark answers only to light
+    if(atDrop() && f.band==='far' && !GLOW_LURES.includes(lure)) continue;
+    // the hidden one answers only to light on the line
+    if(f.hidden && !(lure==='glow' || lure==='wisp')) continue;
+    // one fish only shows while the music plays
+    if(f.id==='hummer' && (S.muted || !A.started_music())) continue;
+    let w = {1:100, 2:46, 3:17, 4:6, 5:1.6}[f.r];
+    if(f.hidden) w = 9; // you did the pilgrimage — it will come, but not on the first cast
+    if(f.id==='hummer') w = 8;
+    // distance band
+    if(f.band !== 'any') w *= (f.band === band) ? 2.3 : 0.45;
+    // lure effects
+    if(lure==='flyl' && f.tags.includes('fly')) w *= 2.2;
+    if(lure==='spoon'){ if(f.r===2) w*=1.8; if(f.r===3) w*=1.4; }
+    if(lure==='glow' && f.tags.includes('glow')) w *= 2.0;
+    if(lure==='golden'){ if(f.r===1) w*=0.45; if(f.r===3) w*=2.0; if(f.r===4) w*=2.6; if(f.r===5) w*=3.2; }
+    if(lure==='wisp'){ if(f.tags.includes('mist')) w *= 2.3; if(phase==='night') w *= 1.15; }
+    if(lure==='celestial' && phase==='night'){ if(f.r===4) w *= 1.3; if(f.r===5) w *= 1.6; }
+    // weather moods
+    if(G.wx==='fog' && (f.r===3 || f.r===4)) w *= 1.45;
+    if(G.wx==='rain' && f.r>=2) w *= 1.15;
+    // a perfect cast turns rare heads
+    if(G.perfect && f.r>=3) w *= 1.35;
+    // an old friend's luck
+    if(f.r>=3 && hasGear('hat')) w *= 1.12;
+    // golden hour: the whole curve tilts toward wonder
+    if(GH.active) w *= [0, 1, 1.4, 1.8, 2.2, 3][f.r];
+    // the sky helps, when it's dancing
+    if(AUR.active && f.r>=3) w *= 1.5;
+    // fly rod synergy
+    if(rod==='flyrod' && f.tags.includes('fly')) w *= 1.8;
+    if(w>0) pool.push([f, w]);
+  }
+  if(!pool.length) return { junk: pick(JUNK.slice(0,-1)) };
+  let total = pool.reduce((a,p)=>a+p[1],0);
+  let roll = Math.random()*total;
+  for(const [f,w] of pool){ roll -= w; if(roll<=0) return { fish:f }; }
+  return { fish: pool[pool.length-1][0] };
+}
+
+function biteWaitTime(){
+  let t = rnd(4.5, 12);
+  const lure = S.lure, phase = phaseOf(S.timeT);
+  if(lure==='spinner') t *= 0.7;
+  if(lure==='flyl' && (phase==='dawn'||phase==='dusk')) t *= 0.8;
+  if(lure==='glow' && phase==='night') t *= 0.7;
+  if(lure==='golden') t *= 1.35;
+  if(S.rod==='flyrod' && S.loc==='river') t *= 0.85;
+  if(G.wx==='rain') t *= 0.78;
+  if(lure==='wisp' && phase==='night') t *= 0.85;
+  if(GH.active) t *= 0.7;
+  return t;
+}
+
+/* ---- state transitions ---- */
+function press(){
+  G.holding = true;
+  A.init();
+  if(G.phase==='idle'){
+    if(atDrop()){
+      G.phase = 'lowering';
+      G.depth = 0;
+      setHint('Hold to lower the line. Release to fish that depth.');
+    } else if(iced()){
+      G.phase = 'aiming';
+      G.aim = { x: G.hole ? G.hole.x : 204, dir: 1 };
+      setHint(G.hole ? 'Release on your hole to fish it, or elsewhere to drill anew.' : 'Release to drill here. Watch the shadows under the ice.');
+    } else {
+      G.phase = 'casting'; G.castP = 0; G.castDir = 1;
+      setHint('Release to cast!');
+    }
+  } else if(G.phase==='drilling'){
+    G.phase = 'idle';
+    setHint('Drilling stopped. Hold to aim again.');
+  } else if(G.phase==='waiting'){
+    // strike! is it a nibble tease or early pull?
+    if(G.nibbleActive){
+      G.phase = 'idle'; A.sFail();
+      setHint('Just a nibble... it spooked. Cast again.');
+      toast('Too eager! That was only a nibble.');
+    } else {
+      G.phase = 'idle';
+      setHint('Line\u2019s in. Hold to cast again.');
+    }
+  } else if(G.phase==='bite'){
+    hookFish();
+  }
+}
+function release(){
+  G.holding = false;
+  if(G.phase==='casting'){
+    doCast();
+  } else if(G.phase==='lowering'){
+    S.casts++; save();
+    const by = WL + 14 + G.depth * (HH - WL - 26);
+    G.perfect = false;
+    beginWait(84, by, true);
+    A.sPlop();
+  } else if(G.phase==='aiming'){
+    if(G.hole && Math.abs(G.aim.x - G.hole.x) < 6){
+      A.sPlop();
+      S.casts++; save();
+      beginWait(G.hole.x, WL+6, true);
+    } else {
+      G.phase = 'drilling';
+      G.drill = { x: G.aim.x, t: 0 };
+      S.casts++; save();
+      A.sCast();
+      // the noise spooks anything close
+      for(const s of shadows){
+        if(Math.abs(s.x - G.drill.x) < 42){
+          s.vx = (s.x < G.drill.x ? -1 : 1) * 34;
+          s.life = Math.min(s.life, 1.1);
+        }
+      }
+      setHint('Drilling... (press to stop)');
+    }
+  }
+}
+
+function doCast(){
+  const power = G.castP;
+  G.perfect = power >= 0.84 && power <= 0.91;
+  if(G.perfect){ A.sPerfect(); toast('🎯 <b>Perfect cast!</b> Something will notice that.'); }
+  const dist = 78 + power*178 + rnd(-6,6);
+  const toX = clamp(ROD_TIP.x + dist, 100, 304);
+  G.fly = { t:0, fromX:ROD_TIP.x+8, fromY:ROD_TIP.y-10, toX, toY:WL+5 };
+  G.phase = 'flying';
+  S.casts++; save();
+  A.sCast();
+  setHint('');
+  checkAch();
+}
+
+function beginWait(px, py, quiet){
+  G.phase = 'waiting';
+  G.bob.x = px !== undefined ? px : G.fly.toX;
+  G.bob.y = py !== undefined ? py : G.fly.toY;
+  if(!quiet){
+    ripples.push({x:G.bob.x, y:G.bob.y+2, r:1, life:0.9});
+    A.sPlop();
+  }
+  G.waitT = biteWaitTime();
+  G.fromShadow = false;
+  if(G.perfect) G.waitT *= 0.65;
+  if(nearShadow(G.bob.x)) G.waitT *= 0.5;
+  if(hotspot && Math.abs(hotspot.x - G.bob.x) < 24) G.waitT *= 0.6;
+  G.starLock = STAR.active && Math.abs(G.bob.x - STAR.tx) < 16;
+  if(G.starLock) G.waitT = rnd(1.5, 3);
+  G.waitT = Math.max(1.2, G.waitT);
+  // schedule nibbles
+  const maxNib = hasGear('lucky') ? 1 : 3;
+  const nNib = Math.floor(rnd(0, maxNib+1));
+  G.nibbles = [];
+  for(let i=0;i<nNib;i++) G.nibbles.push(rnd(0.2, 0.85) * G.waitT);
+  G.nibbles.sort((a,b)=>a-b);
+  G.nibbleActive = 0;
+  G.elapsed = 0;
+  const band = atDrop() ? depthBand(G.depth) : bandOf(G.bob.x);
+  setHint(atDrop()
+    ? `Line holding in the ${depthMeta(G.depth).name.toLowerCase()}... wait for the !`
+    : `Waiting ${BANDS[band].toLowerCase()}... small taps are nibbles, wait for the !`);
+}
+
+function triggerBite(){
+  const band = atDrop() ? depthBand(G.depth) : bandOf(G.bob.x);
+  if(G.starLock && STAR.active){
+    STAR.active = false; STAR.cd = rnd(200, 460);
+    G.starLock = false;
+    G.hooked = null; G.junk = STARFRAG;
+    G.phase = 'bite';
+    G.biteT = 0;
+    G.biteWin = hasGear('lucky') ? 1.35 : 0.95;
+    A.sBite();
+    setHint('!!! — strike NOW!');
+    return;
+  }
+  const sh = nearShadow(G.bob.x);
+  if(sh && Math.random() < 0.75){
+    G.hooked = sh.f; G.junk = null; G.fromShadow = true;
+    shadows = shadows.filter(x => x !== sh);
+    ripples.push({x:sh.x, y:sh.y-10, r:3, life:0.8});
+  } else {
+    const res = pickCatch(band);
+    G.hooked = res.fish || null;
+    G.junk = res.junk || null;
+  }
+  G.phase = 'bite';
+  G.biteT = 0;
+  G.biteWin = hasGear('lucky') ? 1.35 : 0.95;
+  A.sBite();
+  ripples.push({x:G.bob.x, y:G.bob.y+2, r:2, life:0.7});
+  setHint('STRIKE! Press now!');
+}
+
+function missBite(){
+  G.phase = 'idle'; G.hooked = null; G.junk = null;
+  A.sFail();
+  breakStreak();
+  setHint('It got away... hold to cast again.');
+}
+
+function hookFish(){
+  if(G.hooked && G.hooked.id==='hummer' && !A.onBeat()){
+    G.phase = 'idle'; G.hooked = null; G.junk = null;
+    S.hummerMiss = (S.hummerMiss||0) + 1;
+    A.sFail();
+    setHint('...');
+    toast('<i>...it slipped away, humming.</i>');
+    save();
+    return;
+  }
+  if(G.junk){
+    // junk reels in instantly-ish: tiny minigame still fun? give free catch
+    landJunk(G.junk);
+    return;
+  }
+  const f = G.hooked;
+  const rod = rodOf();
+  const trackTop = 26, trackBot = 156;
+  G.reel = {
+    f, top:trackTop, bot:trackBot,
+    zoneH: rod.zone,
+    zoneY: trackBot - rod.zone - 10,
+    vel:0,
+    fishY: trackTop + rnd(20, 60),
+    target: trackTop + rnd(0, trackBot-trackTop-8),
+    retarget: 0,
+    prog: 0.34,
+    reelMult: rod.reel,
+    t:0,
+    runs: atDrop() ? (f.r>=5 ? [0.42, 0.62, 0.82] : f.r===4 ? [0.5, 0.75] : [0.62])
+        : (f.r>=5 ? [0.5, 0.78] : f.r===4 ? [0.66] : []),
+    mst: S.masterOn ? 1.35 : 1,
+    runT: 0,
+    netUsed: false,
+  };
+  G.phase = 'reeling';
+  setHint('Hold to lift the bar — keep the fish inside it!');
+}
+
+function updateReel(dt){
+  const r = G.reel; if(!r) return;
+  r.t += dt;
+  const d = r.f.d;
+  // legendary runs
+  if(r.runT > 0) r.runT -= dt;
+  if(r.runs.length && r.prog >= r.runs[0]){
+    r.runs.shift();
+    r.runT = 1.15;
+    A.sBite();
+    setHint('It\u2019s RUNNING! Hang on!');
+  }
+  const rsp = (r.runT>0 ? d.sp*1.8 : d.sp) * (r.mst||1);
+  const rdr = (r.runT>0 ? d.dr*1.7 : d.dr) * (r.mst||1);
+  // player zone physics
+  r.vel += (G.holding ? -640 : 640) * dt;
+  r.vel = clamp(r.vel, -240, 240);
+  r.zoneY += r.vel * dt;
+  if(r.zoneY < r.top){ r.zoneY = r.top; r.vel *= -0.25; }
+  if(r.zoneY > r.bot - r.zoneH){ r.zoneY = r.bot - r.zoneH; r.vel *= -0.25; }
+  // fish movement
+  r.retarget -= dt;
+  if(r.retarget <= 0){
+    r.retarget = rnd(0.35, 1.2) * (r.runT>0 ? 0.45 : 1);
+    r.target = r.top + rnd(0, (r.bot-r.top) - 8);
+    if(Math.random() < d.dart){
+      r.fishY = lerp(r.fishY, r.target, 0.65); // dart jump
+    }
+  }
+  const dir = Math.sign(r.target - r.fishY);
+  r.fishY += dir * Math.min(Math.abs(r.target-r.fishY), rsp*dt*(1+0.3*Math.sin(r.t*3)));
+  // progress
+  const inside = r.fishY >= r.zoneY-2 && r.fishY <= r.zoneY + r.zoneH + 2;
+  if(inside){
+    r.prog += 0.27 * r.reelMult * dt;
+    if(Math.random() < dt*8) A.sNibble();
+  } else {
+    r.prog -= 0.205 * rdr * dt;
+  }
+  if(r.prog >= 1){ landFish(r.f); }
+  else if(r.prog <= 0){
+    if(hasGear('net') && !r.netUsed && Math.random() < 0.35){
+      r.netUsed = true;
+      r.prog = 0.28;
+      A.sBuy();
+      setHint('🥅 The drift net caught it! One more chance!');
+      toast('🥅 <b>Saved by the net!</b> The line held... barely.');
+      return;
+    }
+    G.phase = 'idle'; G.reel = null; G.hooked = null;
+    A.sFail();
+    breakStreak();
+    setHint('Snap! The line went slack. Hold to cast again.');
+  }
+}
+
+/* ---- landing ---- */
+function landJunk(j){
+  G.phase = 'idle'; G.hooked = null; G.junk = null;
+  if(j.id==='starfrag'){
+    S.starFrags = (S.starFrags||0) + 1;
+    S.flags.star = true;
+    addCoins(j.val);
+    A.sAch();
+    toast(`🌠 <b>Star Fragment!</b> (${S.starFrags}/5 toward something wonderful) +${j.val}⛀`, 'ach');
+    setHint('Hold to cast again.');
+    save(); checkAch(); updateHUD();
+    return;
+  }
+  S.junkCount++;
+  addCoins(j.val);
+  A.sCatch(1);
+  if(j.id==='bottle'){
+    S.flags.bottle = true;
+    const done = (S.bottles||0) >= BOTTLE_MSGS.length;
+    const i = Math.min(S.bottles||0, BOTTLE_MSGS.length-1);
+    $('#bottleNum').textContent = done ? 'The handwriting is familiar now.' : `Letter ${i+1} of ${BOTTLE_MSGS.length}`;
+    $('#bottleText').innerHTML = done ? '\u201cStill fishing? Good. The water remembers you too.\u201d \u2014 E.' : BOTTLE_MSGS[i];
+    if(!done) S.bottles = (S.bottles||0) + 1;
+    openModal('bottleModal');
+  } else {
+    toast(`${j.icon} <b>${j.name}</b> — ${j.msg} (+${j.val}⛀)`);
+  }
+  qOnJunk();
+  setHint('Hold to cast again.');
+  save(); checkAch(); updateHUD();
+}
+
+function landFish(f){
+  G.phase = 'idle'; G.reel = null; G.hooked = null;
+  // size roll, skewed small
+  const frac = Math.pow(Math.random(), S.masterOn ? 1.45 : 1.7);
+  const cm = Math.round(lerp(f.len[0], f.len[1], frac)*10)/10;
+  const shiny = Math.random() < (S.lure==='golden' ? (S.masterOn?1/15:1/30) : (S.masterOn?1/22:1/45));
+  let value = Math.max(1, Math.round(f.val * (0.65 + 0.7*frac)));
+  if(shiny) value = Math.round(value * 2.5);
+  value = Math.max(1, Math.round(value * (1 + trophyBonus()) * (1 + streakBonus()) * (S.masterOn ? 1.25 : 1)));
+  G.pendingCatch = { f, cm, value, shiny };
+  const isNew = !S.dex[f.id];
+  const prev = S.dex[f.id];
+  const isRecord = prev && cm > prev.best;
+  if(!prev) S.dex[f.id] = {n:1, best:cm, sh: shiny?1:0};
+  else { prev.n++; if(cm>prev.best) prev.best = cm; if(shiny) prev.sh = (prev.sh||0)+1; }
+  if(shiny) S.shinies = (S.shinies||0)+1;
+  S.totalCatches++;
+  S.locCatch[S.loc] = (S.locCatch[S.loc]||0)+1;
+  derbyScore(f, cm);
+  const phase = phaseOf(S.timeT);
+  if(phase==='night') S.flags.night = true;
+  if(phase==='dawn') S.flags.dawn = true;
+  if(frac >= 0.9) S.flags.big = true;
+  if(G.wx==='rain') S.flags.rain = true;
+  if(G.wx==='fog') S.flags.fog = true;
+  (S.flags.seasons || (S.flags.seasons={}))[curSeason().id] = true;
+  if(GH.active) S.flags.golden = true;
+  if(iced()) S.flags.ice = true;
+  if(atDrop() && depthBand(G.depth||0)==='far') S.flags.midnight = true;
+  if(AUR.active) S.flags.auroraCatch = true;
+  if(G.fromShadow) S.flags.shadow = true;
+  if(G.perfect) S.flags.perfect = true;
+  S.streak = (S.streak||0) + 1;
+  if(S.streak > (S.bestStreak||0)) S.bestStreak = S.streak;
+  if(S.streak===3 || S.streak===5 || S.streak===8)
+    toast(`🔥 <b>${S.streak} in a row!</b> Sale value +${Math.round(streakBonus()*100)}% while it holds.`);
+  qOnCatch(f, cm, frac, shiny);
+  cotdScore(f, cm);
+  if(S.loc==='still' && !S.flags.efound && dexCountLoc(S,'still') === locTotal('still')){
+    S.flags.efound = true;
+    if(!S.gear.includes('hat')) S.gear.push('hat');
+    setTimeout(()=>{
+      $('#bottleNum').textContent = 'The ferryman presses a letter into your hand.';
+      $('#bottleText').innerHTML = FINAL_LETTER;
+      openModal('bottleModal');
+      toast('🎩 <b>E.\u2019s Lucky Hat</b> is yours. Rare fish tip their fins to it.', 'ach');
+    }, 900);
+  }
+  A.sCatch(f.r);
+  if(shiny) A.sAch();
+  ripples.push({x:G.bob.x, y:WL+6, r:2, life:1});
+  showCatch(f, cm, value, isNew, isRecord, frac, shiny);
+  save(); checkAch(); updateHUD();
+  setHint('Hold to cast again.');
+}
+
+function addCoins(v){ S.coins += v; S.lifetimeCoins += v; }
+
+/* ============================================================
+   WEATHER
+   ============================================================ */
+function rollWxKind(){
+  const r = Math.random();
+  return r < 0.55 ? 'clear' : r < 0.83 ? 'rain' : 'fog';
+}
+function rollWx(silent){
+  G.wx = G.wxNext || rollWxKind();
+  G.wxNext = rollWxKind();
+  if(G.wxNext === G.wx) G.wxNext = rollWxKind(); // bias toward change
+  G.wxT = rnd(70, 150);
+  if(!silent){
+    const m = wxLabel(G.wx);
+    const line = G.wx==='clear' ? 'The sky opens up.' :
+      G.wx==='fog' ? 'A pale mist settles over the water...' :
+      (m.label==='Snow' ? 'Snow begins to drift down.' : 'Rain begins to fall...');
+    toast(`${m.icon} ${line}`);
+  }
+  updateHUD();
+}
+function updateWx(dt){
+  G.wxT -= dt;
+  if(G.wxT <= 0) rollWx(false);
+}
+
+/* ============================================================
+   DAYS / SEASONS
+   ============================================================ */
+function onNewDay(){
+  resolveDerby();
+  S.day = (S.day||1) + 1;
+  if(!iced()) G.hole = null;
+  const s = curSeason();
+  if((S.day-1) % SEASON_DAYS === 0){
+    toast(`${s.icon} <b>${s.label}</b> arrives. New fish stir in the water.`);
+    terraKey = ''; // repaint terrain in new colors
+  }
+  genQuests();
+  toast(`📋 Day ${S.day} — fresh requests are pinned to the board.`);
+  if(derbyDay(S.day)) startDerby();
+  save(); updateHUD(); checkAch();
+}
+
+/* ============================================================
+   REQUESTS (daily quest board)
+   ============================================================ */
+function qrng(day, i){ return mulberry(hashSeed('quest'+day+'|'+i)); }
+function questableFish(rng){
+  const s = curSeason().id;
+  const pool = FISH.filter(f =>
+    f.loc !== 'still' && S.unlocked.includes(f.loc) && !f.wx && !f.ice && !f.aurora &&
+    f.id !== 'hummer' && (!f.season || f.season.includes(s)) && f.r <= 3);
+  return pool.length ? pool[Math.floor(rng()*pool.length)] : FISH[0];
+}
+function genQuests(){
+  const day = S.day||1;
+  const list = [];
+  const types = ['species','species','loc','rare','size','junk','phase'];
+  const used = new Set();
+  for(let i=0; i<3; i++){
+    const rng = qrng(day, i);
+    let ty = types[Math.floor(rng()*types.length)];
+    if(used.has(ty)) ty = 'species';
+    used.add(ty);
+    let q;
+    if(ty==='species'){
+      const f = questableFish(rng);
+      const n = f.r>=3 ? 1+Math.floor(rng()*2) : 2+Math.floor(rng()*3);
+      q = {ty, fid:f.id, n, p:0, reward: Math.round(f.val*n*2 + 30),
+           desc:`Catch <b>${n}× ${f.name}</b>`};
+    } else if(ty==='loc'){
+      const ks = S.unlocked.filter(k=>k!=='still'); const k = ks[Math.floor(rng()*ks.length)] || 'pond';
+      const n = 5+Math.floor(rng()*4);
+      q = {ty, loc:k, n, p:0, reward: n*16+20,
+           desc:`Catch <b>${n} fish</b> at ${LOCS[k].name}`};
+    } else if(ty==='rare'){
+      q = {ty, n:2, p:0, reward:170, desc:'Catch <b>2 fish of ★★★ rarity or better</b>'};
+    } else if(ty==='size'){
+      const f = questableFish(rng);
+      q = {ty, fid:f.id, n:1, p:0, frac:0.72, reward: f.val*4+40,
+           desc:`Catch a <b>big ${f.name}</b> (top-quarter size)`};
+    } else if(ty==='junk'){
+      q = {ty, n:3, p:0, reward:65, desc:'Reel in <b>3 pieces of junk</b> (the pond thanks you)'};
+    } else {
+      const ph = rng()<0.5 ? 'night' : 'dawn';
+      q = {ty:'phase', phase:ph, n:2, p:0, reward:95,
+           desc:`Catch <b>2 fish at ${ph}</b>`};
+    }
+    q.done=false; q.claimed=false;
+    list.push(q);
+  }
+  S.quests = {day, list};
+}
+function ensureQuests(){
+  if(!S.quests || S.quests.day !== (S.day||1)) genQuests();
+}
+function qBump(q){
+  q.p++;
+  if(q.p >= q.n && !q.done){
+    q.done = true;
+    A.sBuy();
+    toast(`📋 <b>Request complete!</b><br>${q.desc} — claim your reward at the board.`, 'ach');
+  } else if(!q.done){
+    toast(`📋 Request progress: ${q.p}/${q.n}`);
+  }
+}
+function qOnCatch(f, cm, frac, shiny){
+  ensureQuests();
+  const phase = phaseOf(S.timeT);
+  for(const q of S.quests.list){
+    if(q.done) continue;
+    if(q.ty==='species' && q.fid===f.id) qBump(q);
+    else if(q.ty==='loc' && q.loc===S.loc) qBump(q);
+    else if(q.ty==='rare' && f.r>=3) qBump(q);
+    else if(q.ty==='size' && q.fid===f.id && frac>=q.frac) qBump(q);
+    else if(q.ty==='phase' && phase===q.phase) qBump(q);
+  }
+  save();
+}
+function qOnJunk(){
+  ensureQuests();
+  for(const q of S.quests.list){
+    if(!q.done && q.ty==='junk') qBump(q);
+  }
+  save();
+}
+
+/* ============================================================
+   TROPHIES
+   ============================================================ */
+const TROPHY_COST = {1:120, 2:250, 3:500, 4:1000, 5:2500};
+function trophyCount(){ return Object.keys(S.trophies||{}).length; }
+function trophyBonus(){ return Math.min(0.20, 0.01 * trophyCount()); }
+
+
+/* ============================================================
+   ICE & AURORA
+   ============================================================ */
+function iced(){ return curSeason().id==='winter' && (S.loc==='pond' || S.loc==='lake'); }
+function atDrop(){ return S.loc==='drop'; }
+const GLOW_LURES = ['glow','wisp','celestial'];
+const DEPTHS = [
+  {id:'near', name:'SUNLIT',   col:'#4e7a9e'},
+  {id:'mid',  name:'TWILIGHT', col:'#323c5e'},
+  {id:'far',  name:'MIDNIGHT', col:'#12102a'},
+];
+function depthBand(d){ return d < 0.34 ? 'near' : d < 0.67 ? 'mid' : 'far'; }
+function depthMeta(d){ return DEPTHS[d < 0.34 ? 0 : d < 0.67 ? 1 : 2]; }
+const AUR = { active:false, t:0, cd:rnd(120, 300) };
+function auroraEligible(){
+  return curSeason().id==='winter' && phaseOf(S.timeT)==='night' && G.wx==='clear' && S.loc!=='still' && S.loc!=='drop';
+}
+function tickAurora(dt){
+  if(AUR.active){
+    AUR.t -= dt;
+    if(AUR.t <= 0 || !auroraEligible()){
+      AUR.active = false; AUR.cd = rnd(150, 360);
+      toast('The lights fold themselves away.');
+    }
+  } else if(auroraEligible()){
+    AUR.cd -= dt;
+    if(AUR.cd <= 0){
+      AUR.active = true; AUR.t = rnd(45, 70);
+      A.sAch();
+      toast('🌌 <b>The aurora!</b> Ribbons of light unwind across the sky...', 'ach');
+    }
+  }
+}
+
+/* ============================================================
+   CAST OF THE DAY (same challenge in every copy of the game)
+   ============================================================ */
+const COTD_LOCS = ['pond','river','lake','coast','bog'];
+function cotdDate(){ return new Date().toISOString().slice(0,10); }
+function cotdEnsure(){
+  const today = cotdDate();
+  if(S.cotd && S.cotd.date === today) return;
+  const hist = (S.cotd && S.cotd.score > 0)
+    ? [{date:S.cotd.date, ty:S.cotd.ty, score:S.cotd.score}].concat(S.cotd.hist||[]).slice(0,3)
+    : (S.cotd ? (S.cotd.hist||[]) : []);
+  const rng = mulberry(hashSeed('cotd' + today));
+  const ty = DERBY_TYPES[Math.floor(rng() * DERBY_TYPES.length)].id;
+  const loc = COTD_LOCS[Math.floor(rng() * COTD_LOCS.length)];
+  S.cotd = { date: today, ty, loc, score: 0, hist };
+  save();
+}
+function cotdScore(f, cm){
+  cotdEnsure();
+  if(S.loc !== S.cotd.loc) return;
+  if(S.cotd.ty==='biggest') S.cotd.score = Math.max(S.cotd.score, cm);
+  else if(S.cotd.ty==='count') S.cotd.score += 1;
+  else S.cotd.score += f.r;
+}
+function cotdCard(){
+  cotdEnsure();
+  const ty = DERBY_TYPES.find(t=>t.id===S.cotd.ty);
+  const pw=240, ph=135, SC=3;
+  const c = document.createElement('canvas'); c.width=pw; c.height=ph;
+  const g = c.getContext('2d');
+  const L = LOCS[S.cotd.loc];
+  g.fillStyle = '#10142a'; g.fillRect(0,0,pw,ph);
+  g.fillStyle = L.water; g.fillRect(0, ph*0.62, pw, ph*0.2);
+  g.fillStyle = L.waterDeep; g.fillRect(0, ph*0.82, pw, ph*0.18);
+  g.fillStyle = '#f2c14e';
+  g.fillRect(3,3,pw-6,1); g.fillRect(3,ph-4,pw-6,1); g.fillRect(3,3,1,ph-6); g.fillRect(pw-4,3,1,ph-6);
+  const big = document.createElement('canvas'); big.width=pw*SC; big.height=ph*SC;
+  const bg = big.getContext('2d');
+  bg.imageSmoothingEnabled = false;
+  bg.drawImage(c, 0, 0, pw*SC, ph*SC);
+  bg.textAlign='center';
+  bg.fillStyle='#f2c14e'; bg.font='bold 20px monospace';
+  bg.fillText('CAST OF THE DAY', pw*SC/2, 54);
+  bg.fillStyle='#8a94b8'; bg.font='14px monospace';
+  bg.fillText(S.cotd.date, pw*SC/2, 80);
+  bg.fillStyle='#e8e0c8'; bg.font='16px monospace';
+  bg.fillText(`${ty.name} \u00b7 ${L.name}`, pw*SC/2, 118);
+  bg.fillStyle='#ffe9a0'; bg.font='bold 44px monospace';
+  bg.fillText(ty.fmt(Math.round(S.cotd.score*10)/10), pw*SC/2, 200);
+  bg.textAlign='right';
+  bg.fillStyle='#f2c14e'; bg.font='14px monospace';
+  bg.fillText('DRIFTWOOD', pw*SC-18, ph*SC-16);
+  const a = document.createElement('a');
+  a.download = `driftwood-cotd-${S.cotd.date}.png`;
+  a.href = big.toDataURL('image/png');
+  a.click();
+  toast('📅 Daily card saved — compare with a friend!');
+}
+
+/* ============================================================
+   STAR FISHING
+   ============================================================ */
+const STAR = { falling:0, fx:0, fy:0, tx:0, active:false, t:0, cd:rnd(150, 380) };
+const STARFRAG = { id:'starfrag', name:'Star Fragment', val:60, icon:'🌠',
+  msg:'Warm as a coal, light as a promise. Five of these could make something.' };
+function starEligible(){
+  return phaseOf(S.timeT)==='night' && G.wx==='clear' && !iced() && S.loc!=='still' && S.loc!=='drop';
+}
+function tickStar(dt){
+  if(STAR.falling > 0){
+    STAR.falling -= dt;
+    if(STAR.falling <= 0){
+      STAR.active = true; STAR.t = 45;
+      A.sPlop();
+      ripples.push({x:STAR.tx, y:WL+8, r:3, life:1.2});
+      toast('🌠 <b>A star fell into the water!</b> Cast onto the glow — quickly, before it fades.', 'ach');
+    }
+    return;
+  }
+  if(STAR.active){
+    STAR.t -= dt;
+    if(STAR.t <= 0 || !starEligible()){
+      STAR.active = false; STAR.cd = rnd(200, 460);
+      toast('The glow sinks out of reach.');
+    }
+  } else if(starEligible()){
+    STAR.cd -= dt;
+    if(STAR.cd <= 0){
+      STAR.tx = rnd(115, 296);
+      STAR.fx = STAR.tx + 60; STAR.fy = 6;
+      STAR.falling = 1.4;
+    }
+  }
+}
+
+/* ============================================================
+   DERBY DAYS
+   ============================================================ */
+function derbyDay(d){ return d >= 4 && d % 4 === 0; }
+function startDerby(){
+  const day = S.day||1;
+  const rng = mulberry(hashSeed('derby'+day));
+  const ty = DERBY_TYPES[Math.floor(rng()*DERBY_TYPES.length)];
+  // expected player performance per category (floors keep early derbies winnable)
+  let exp;
+  if(ty.id==='biggest'){
+    let best = 30;
+    for(const [id,e] of Object.entries(S.dex)){ if(FISH_BY_ID[id] && e.best > best) best = e.best; }
+    exp = best * 0.92;
+  } else if(ty.id==='count'){
+    exp = clamp(Math.round(S.totalCatches / Math.max(1, day-1)) + 2, 5, 30);
+  } else {
+    exp = clamp(Math.round(S.totalCatches / Math.max(1, day-1)) * 1.8 + 4, 8, 60);
+  }
+  const npcs = DERBY_NPCS.map(n => ({
+    id:n.id, name:n.name, rival:!!n.rival,
+    final: Math.max(1, Math.round(exp * (n.lo + rng()*(n.hi-n.lo)) * 10) / 10),
+  }));
+  S.derby = { day, ty:ty.id, score:0, npcs, resolved:false };
+  toast(`🏆 <b>DERBY DAY!</b> Today\u2019s contest: <b>${ty.name}</b> — ${ty.desc} Standings are on the 📋 board.`, 'ach');
+}
+function derbyScore(f, cm){
+  const d = S.derby;
+  if(!d || d.day !== (S.day||1) || d.resolved) return;
+  if(d.ty==='biggest') d.score = Math.max(d.score, cm);
+  else if(d.ty==='count') d.score += 1;
+  else d.score += f.r;
+}
+function derbyStandings(){
+  const d = S.derby;
+  const p = clamp(S.timeT, 0, 1);
+  const ease = p*p*(3-2*p); // npc scores fill in over the day
+  const rows = d.npcs.map(n => ({ name:n.name, rival:n.rival,
+    score: d.ty==='biggest' ? Math.round(n.final * (0.3 + 0.7*ease) * 10)/10 : Math.floor(n.final*ease) }));
+  rows.push({ name:'YOU', you:true, score: Math.round(d.score*10)/10 });
+  rows.sort((a,b)=>b.score-a.score);
+  return rows;
+}
+function resolveDerby(){
+  const d = S.derby;
+  if(!d || d.resolved) return;
+  d.resolved = true;
+  const final = d.npcs.map(n=>({name:n.name, rival:n.rival, score:n.final}))
+    .concat([{name:'YOU', you:true, score:d.score}])
+    .sort((a,b)=>b.score-a.score);
+  const place = final.findIndex(r=>r.you) + 1;
+  const ty = DERBY_TYPES.find(t=>t.id===d.ty);
+  const vera = DERBY_NPCS.find(n=>n.rival);
+  const beatVera = d.score > d.npcs.find(n=>n.rival).final;
+  if(place === 1){
+    S.derbyWins = (S.derbyWins||0)+1;
+    addCoins(DERBY_PAY[0]);
+    A.sAch();
+    toast(`🏆 <b>DERBY CHAMPION!</b> You took 1st in ${ty.name} (+${DERBY_PAY[0]}⛀).<br>${vera.win}`, 'ach');
+  } else if(place <= 3){
+    addCoins(DERBY_PAY[place-1]);
+    toast(`🏆 Derby over — you placed <b>#${place}</b> (+${DERBY_PAY[place-1]}⛀).${beatVera ? '<br>At least you beat VERA.' : ''}`);
+  } else if(d.score > 0){
+    addCoins(25);
+    toast(`🏆 Derby over — #${place}. A long day on the water (+25⛀).<br>${vera.lose}`);
+  } else {
+    toast('🏆 The derby ended without a single entry from you. VERA noticed.');
+  }
+  checkAch();
+}
+
+/* ============================================================
+   THE DOCK CAT
+   ============================================================ */
+function catToday(){
+  if((S.catFed||0) >= 3) return true;
+  return mulberry(hashSeed('cat' + (S.day||1)))() < 0.6;
+}
+function catStaring(){
+  return (S.catFed||0) >= 5 && shadows.some(s => s.f.r >= 3);
+}
+function drawCat(now, amb){
+  if(!catToday() || atDrop()) return;
+  const cx = 6, cy = 89;
+  const fur = shade('#3a3a46', Math.max(0.45, amb));
+  const dark = shade('#23232c', Math.max(0.45, amb));
+  ctx.fillStyle = fur;
+  ctx.fillRect(cx, cy+3, 7, 4);              // body
+  ctx.fillRect(cx+5, cy, 4, 4);              // head
+  ctx.fillRect(cx+5, cy-1, 1, 1);            // ears
+  ctx.fillRect(cx+8, cy-1, 1, 1);
+  // tail sway
+  const sw = Math.round(Math.sin(now/600)*1.5);
+  ctx.fillRect(cx-2, cy+2+sw, 2, 1);
+  ctx.fillRect(cx-1, cy+3, 1, 2);
+  ctx.fillStyle = dark;
+  ctx.fillRect(cx+1, cy+6, 1, 1); ctx.fillRect(cx+5, cy+6, 1, 1); // paws
+  // eyes: blink, or lock onto the water when staring
+  const staring = catStaring();
+  if(staring || Math.floor(now/2800)%7 !== 0){
+    ctx.fillStyle = staring ? '#ffe9a0' : '#c8d44e';
+    ctx.fillRect(cx+6, cy+1, 1, 1); ctx.fillRect(cx+8, cy+1, 1, 1);
+  }
+  if(staring){
+    ctx.fillStyle = '#ffe9a0';
+    ctx.fillRect(cx+6, cy-4, 1, 2); ctx.fillRect(cx+6, cy-6, 1, 1); // !
+  }
+}
+
+/* ============================================================
+   ACTIVE WATER — shadows, hotspots, golden hour
+   ============================================================ */
+let shadows = [], shadowT = rnd(7, 14);
+let hotspot = null, hotspotT = rnd(16, 32);
+const GH = { active:false, t:0, cd:rnd(150, 330) };
+
+function shadowPool(){
+  const phase = phaseOf(S.timeT), sn = curSeason().id;
+  return FISH.filter(f => f.loc===S.loc && !f.hidden && f.id!=='hummer' &&
+    (!f.time || f.time.includes(phase)) &&
+    (!f.season || f.season.includes(sn)) &&
+    (!f.wx || G.wx===f.wx) &&
+    (!f.ice || iced()) &&
+    (!f.aurora || AUR.active));
+}
+function spawnShadow(){
+  const pool = shadowPool(); if(!pool.length) return;
+  const RW = {1:10, 2:8, 3:6, 4:4, 5:2}; // flattened: rare shadows show up often enough to chase
+  let tot = 0; const ws = pool.map(f=>{ const w = RW[f.r]; tot += w; return w; });
+  let r = Math.random()*tot, f = pool[0];
+  for(let i=0;i<pool.length;i++){ r -= ws[i]; if(r<=0){ f = pool[i]; break; } }
+  const dir = Math.random()<0.5 ? 1 : -1;
+  shadows.push({ f, x: dir>0 ? -22 : W+22, y: rnd(120, 166), vx: dir*rnd(8, 15), life: rnd(16, 25), ph: rnd(6.28) });
+}
+function tickShadows(dt){
+  if(atDrop()){ shadows.length = 0; return; }
+  shadowT -= dt;
+  if(shadowT <= 0 && shadows.length < 2){ spawnShadow(); shadowT = rnd(10, 22); }
+  shadows = shadows.filter(s=>{ s.x += s.vx*dt; s.life -= dt; return s.life > 0 && s.x > -32 && s.x < W+32; });
+}
+function nearShadow(x){ return shadows.find(s => Math.abs(s.x - x) < 26); }
+
+function tickHotspot(dt){
+  hotspotT -= dt;
+  if(!hotspot && hotspotT <= 0){
+    hotspot = { x:rnd(112, 298), y:rnd(WL+12, HH-14), life:rnd(13, 19), vx:rnd(-4, 4) };
+    hotspotT = rnd(26, 48);
+  }
+  if(hotspot){
+    hotspot.life -= dt; hotspot.x += hotspot.vx*dt;
+    if(hotspot.life <= 0 || hotspot.x < 104 || hotspot.x > 312) hotspot = null;
+  }
+}
+
+function tickGolden(dt){
+  if(GH.active){
+    GH.t -= dt;
+    const c = $('#ghChip');
+    c.style.display = '';
+    c.textContent = '✨ ' + Math.max(0, Math.ceil(GH.t)) + 's';
+    if(GH.t <= 0){
+      GH.active = false; GH.cd = rnd(240, 480);
+      c.style.display = 'none';
+      toast('The golden light slips back below the surface.');
+    }
+  } else {
+    GH.cd -= dt;
+    if(GH.cd <= 0){
+      GH.active = true; GH.t = 60;
+      A.sAch();
+      toast('✨ <b>GOLDEN HOUR!</b> For one minute, the water remembers every fish it ever held. Cast!', 'ach');
+    }
+  }
+}
+const streakBonus = () => Math.min(0.30, 0.03*(S.streak||0));
+function breakStreak(){
+  if((S.streak||0) >= 3) toast('🔥 Streak broken... back to square one.');
+  S.streak = 0;
+  updateHUD();
+}
+
+/* ---- per-frame update ---- */
+function update(dt, now){
+  // time of day flows always
+  if(S.loc !== 'still'){ // time does not pass in the Stillwater
+    const _pt = S.timeT;
+    S.timeT = (S.timeT + dt/DAY_LENGTH) % 1;
+    if(S.timeT < _pt) onNewDay();
+    updateWx(dt);
+  }
+  tickShadows(dt); if(!iced() && !atDrop()) tickHotspot(dt); else hotspot = null;
+  tickGolden(dt); tickAurora(dt); tickStar(dt);
+  if((G.phase==='aiming' || G.phase==='drilling') && !iced()){
+    G.phase = 'idle'; G.hole = null;
+    setHint('The ice is gone. Hold to cast.');
+  }
+  if(G.phase==='lowering'){
+    G.depth = Math.min(1, G.depth + dt / 3.6);
+  } else if(G.phase==='aiming'){
+    G.aim.x += G.aim.dir * dt * 95;
+    if(G.aim.x >= 304){ G.aim.x = 304; G.aim.dir = -1; }
+    if(G.aim.x <= 104){ G.aim.x = 104; G.aim.dir = 1; }
+  } else if(G.phase==='drilling'){
+    G.drill.t += dt;
+    if(G.drill.t >= 1.9){
+      G.hole = { x: G.drill.x };
+      A.sPlop();
+      beginWait(G.hole.x, WL+6, true);
+    }
+  } else if(G.phase==='casting'){
+    G.castP += G.castDir * dt * 1.35;
+    if(G.castP >= 1){ G.castP = 1; G.castDir = -1; }
+    if(G.castP <= 0){ G.castP = 0; G.castDir = 1; }
+  } else if(G.phase==='flying'){
+    G.fly.t += dt / 0.55;
+    if(G.fly.t >= 1) beginWait();
+  } else if(G.phase==='waiting'){
+    G.elapsed += dt;
+    // nibbles
+    if(G.nibbleActive > 0) G.nibbleActive -= dt;
+    if(G.nibbles.length && G.elapsed >= G.nibbles[0]){
+      G.nibbles.shift();
+      G.nibbleActive = 0.5;
+      A.sNibble();
+      ripples.push({x:G.bob.x, y:G.bob.y+2, r:1, life:0.5});
+    }
+    if(G.elapsed >= G.waitT) triggerBite();
+  } else if(G.phase==='bite'){
+    G.biteT += dt;
+    if(G.biteT >= G.biteWin) missBite();
+  } else if(G.phase==='reeling'){
+    updateReel(dt);
+  }
+}
+
+/* ---- drawing the line / bobber / overlays ---- */
+function drawLineAndBobber(now, dt, amb){
+  if(atDrop() && (G.phase==='lowering' || G.phase==='waiting' || G.phase==='bite' || G.phase==='reeling')){
+    const tipX = ROD_TIP.x+10, tipY = ROD_TIP.y-12;
+    ctx.strokeStyle = shade('#6e4a26', amb);
+    ctx.beginPath(); ctx.moveTo(ROD_TIP.x-4, ROD_TIP.y+18); ctx.lineTo(tipX, tipY); ctx.stroke();
+    const by = G.phase==='lowering' ? WL + 14 + G.depth*(HH-WL-26) : G.bob.y;
+    ctx.strokeStyle = `rgba(240,244,250,${0.35+0.25*amb})`;
+    ctx.beginPath(); ctx.moveTo(tipX, tipY); ctx.lineTo(84, WL+2); ctx.lineTo(84, by); ctx.stroke();
+    ctx.fillStyle = G.phase==='bite' ? '#e0604c' : '#e8e0c8';
+    ctx.fillRect(82, Math.floor(by)-1, 4, 3);
+    if(G.phase==='bite'){
+      ctx.fillStyle = '#e0604c';
+      ctx.font = '8px monospace';
+      ctx.fillText('!', 80, Math.floor(by)-6);
+    }
+    if(S.lure==='celestial' && Math.random()<0.3){
+      ctx.fillStyle = '#ffe9a0';
+      ctx.fillRect(84 + Math.floor(rnd(-2,2)), Math.floor(rnd(WL+4, by)), 1, 1);
+    }
+    return;
+  }
+  ctx.strokeStyle = `rgba(240,244,250,${0.5+0.3*amb})`;
+  ctx.lineWidth = 1;
+  const tipX = ROD_TIP.x+10, tipY = ROD_TIP.y-12;
+  // rod
+  ctx.strokeStyle = shade('#6e4a26', amb);
+  ctx.beginPath(); ctx.moveTo(ROD_TIP.x-4, ROD_TIP.y+18); ctx.lineTo(tipX, tipY); ctx.stroke();
+  ctx.strokeStyle = `rgba(235,240,248,${0.45+0.3*amb})`;
+  if(G.phase==='flying'){
+    const f = G.fly;
+    const x = lerp(f.fromX, f.toX, f.t);
+    const arc = Math.sin(f.t*Math.PI) * 36;
+    const y = lerp(f.fromY, f.toY, f.t) - arc;
+    ctx.beginPath(); ctx.moveTo(tipX, tipY);
+    ctx.quadraticCurveTo((tipX+x)/2, Math.min(tipY,y)-12, x, y);
+    ctx.stroke();
+    drawBobberAt(x, y, now);
+  } else if(G.phase==='waiting' || G.phase==='bite' || G.phase==='reeling'){
+    let bx = G.bob.x, by = G.bob.y + Math.sin(now/420)*0.8;
+    if(G.phase==='waiting' && G.nibbleActive > 0) by += 2;
+    if(G.phase==='bite') by += 3 + Math.sin(now/45)*1.4;
+    if(G.phase==='reeling'){
+      bx += Math.sin(now/90)*1.6;
+      by += Math.sin(now/60)*1.2;
+      if(Math.random()<dt*6) ripples.push({x:bx, y:WL+5, r:1, life:0.5});
+    }
+    ctx.beginPath(); ctx.moveTo(tipX, tipY);
+    ctx.quadraticCurveTo((tipX+bx)/2, lerp(tipY, by, 0.62)+14, bx, by);
+    ctx.stroke();
+    drawBobberAt(bx, by, now);
+    // bite exclamation
+    if(G.phase==='bite'){
+      const rare = G.junk ? 1 : (G.hooked ? G.hooked.r : 1);
+      const col = hasGear('sonar') ? RCOLOR[rare] : '#ffffff';
+      ctx.fillStyle = col;
+      ctx.fillRect(Math.floor(bx)-1, Math.floor(by)-16, 3, 7);
+      ctx.fillRect(Math.floor(bx)-1, Math.floor(by)-7, 3, 3);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(Math.floor(bx)-2, Math.floor(by)-17, 1, 12);
+    }
+  }
+}
+function drawBobberAt(x,y,now){
+  x = Math.floor(x); y = Math.floor(y);
+  ctx.fillStyle = '#e0604c'; ctx.fillRect(x-1, y-3, 3, 2);
+  ctx.fillStyle = '#f2f4f8'; ctx.fillRect(x-1, y-1, 3, 2);
+  if(S.lure==='glow' && skyAt(S.timeT).amb < 0.5){
+    ctx.fillStyle = 'rgba(140,255,190,0.5)';
+    ctx.fillRect(x-2, y-4, 5, 6);
+  }
+}
+
+function drawOverlays(now, dt){
+  // depth meter (the Drop)
+  if(G.phase==='lowering' || (atDrop() && (G.phase==='waiting' || G.phase==='bite'))){
+    const x = 300, y = WL+8, h = HH - WL - 22, w = 6;
+    for(let i=0;i<3;i++){
+      ctx.fillStyle = DEPTHS[i].col;
+      ctx.fillRect(x, y + Math.floor(h*i/3), w, Math.ceil(h/3));
+    }
+    ctx.strokeStyle = '#0a0e22'; ctx.strokeRect(x-0.5, y-0.5, w+1, h+1);
+    const my = y + Math.floor(h * (G.depth||0));
+    ctx.fillStyle = '#f2c14e';
+    ctx.fillRect(x-3, my, w+6, 2);
+    if(G.phase==='lowering'){
+      ctx.fillStyle = '#e8e0c8';
+      ctx.font = '7px monospace';
+      ctx.textAlign = 'right';
+      ctx.fillText(depthMeta(G.depth).name, x-5, my+3);
+      ctx.textAlign = 'left';
+    }
+  }
+  // cast power meter
+  if(G.phase==='casting'){
+    const x = 22, y = 48, w = 50, h = 7;
+    ctx.fillStyle = '#0a0e22'; ctx.fillRect(x-2, y-2, w+4, h+4);
+    ctx.fillStyle = '#2a3658'; ctx.fillRect(x, y, w, h);
+    const p = G.castP;
+    ctx.fillStyle = p<0.45 ? '#7dc95e' : p<0.8 ? '#f2c14e' : '#e0604c';
+    ctx.fillRect(x, y, Math.floor(w*p), h);
+    // band ticks
+    ctx.fillStyle = '#0a0e22';
+    ctx.fillRect(x+Math.floor(w*0.40), y, 1, h);
+    ctx.fillRect(x+Math.floor(w*0.75), y, 1, h);
+    // perfect zone (gold brackets, lit while inside)
+    const inP = p >= 0.84 && p <= 0.91;
+    ctx.fillStyle = inP ? '#ffe9a0' : '#b89030';
+    ctx.fillRect(x+Math.floor(w*0.84), y-2, Math.ceil(w*0.07), 1);
+    ctx.fillRect(x+Math.floor(w*0.84), y+h+1, Math.ceil(w*0.07), 1);
+  }
+  // reel minigame panel
+  if(G.phase==='reeling' && G.reel){
+    const r = G.reel;
+    const px = 286, pw = 18;
+    ctx.fillStyle = 'rgba(8,12,30,0.82)';
+    ctx.fillRect(px-10, r.top-8, pw+22, (r.bot-r.top)+16);
+    ctx.strokeStyle = '#3c4a7c'; ctx.strokeRect(px-10.5, r.top-8.5, pw+23, (r.bot-r.top)+17);
+    // track
+    ctx.fillStyle = '#141a36'; ctx.fillRect(px, r.top, pw, r.bot-r.top);
+    // zone
+    const running = r.runT > 0;
+    ctx.fillStyle = running ? (Math.floor(now/90)%2 ? '#e0604c' : '#f2c14e')
+                  : (G.holding ? '#7dc95e' : '#5aa84a');
+    ctx.fillRect(px, Math.floor(r.zoneY), pw, Math.floor(r.zoneH));
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    ctx.fillRect(px, Math.floor(r.zoneY), pw, 2);
+    // fish marker
+    const sp = fishSprite(r.f, false);
+    const fy = Math.floor(r.fishY);
+    ctx.save();
+    ctx.translate(px+pw/2, fy);
+    ctx.scale(-1,1);
+    ctx.drawImage(sp, -Math.floor(sp.width/2), -Math.floor(sp.height/2));
+    ctx.restore();
+    // progress bar
+    const bw = 5, bx = px - 8;
+    ctx.fillStyle = '#141a36'; ctx.fillRect(bx, r.top, bw, r.bot-r.top);
+    const ph = Math.floor((r.bot-r.top) * clamp(r.prog,0,1));
+    ctx.fillStyle = r.prog>0.66 ? '#7dc95e' : r.prog>0.33 ? '#f2c14e' : '#e0604c';
+    ctx.fillRect(bx, r.bot-ph, bw, ph);
+  }
+}
+/* ============================================================
+   UI
+   ============================================================ */
+function toast(html, cls=''){
+  const d = document.createElement('div');
+  d.className = 'toast '+cls; d.innerHTML = html;
+  $('#toasts').appendChild(d);
+  setTimeout(()=>d.remove(), 4200);
+}
+function checkAch(){
+  for(const a of ACH){
+    if(!S.ach[a.id] && a.test(S)){
+      S.ach[a.id] = true;
+      A.sAch();
+      toast(`${a.icon} <b>AWARD!</b> ${a.name}<br>${a.desc}`, 'ach');
+    }
+  }
+  save();
+}
+
+/* ---- modals ---- */
+function openModal(id){
+  $('#shade').classList.add('open');
+  $$('.modal').forEach(m=>m.classList.remove('open'));
+  $('#'+id).classList.add('open');
+}
+function closeModals(){
+  if(G.pendingCatch) resolveCatch('sell');
+  $('#shade').classList.remove('open');
+  $$('.modal').forEach(m=>m.classList.remove('open'));
+}
+$('#shade').addEventListener('click', e=>{ if(e.target===$('#shade')) closeModals(); });
+$$('[data-close]').forEach(b=>b.addEventListener('click', closeModals));
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModals(); });
+
+/* ---- AQUARIUM TANK ---- */
+let aqAnim = [];
+const AQ_PIXELS_PER_CM = 0.65;
+function aquariumFishSize(a){
+  const sp = fishSprite(a.f, false, !!a.e.sh);
+  const cm = Number.isFinite(Number(a.e.cm)) ? Number(a.e.cm) : a.f.len[0];
+  const width = Math.max(1, Math.round(cm * AQ_PIXELS_PER_CM));
+  const height = Math.max(1, Math.round(sp.height * width / sp.width));
+  return {sp, width, height};
+}
+function drawAquarium(now){
+  const cv = $('#aqCanvas'); if(!cv) return;
+  const g = cv.getContext('2d');
+  const w = cv.width, h = cv.height;
+  g.fillStyle = '#1c2a3e'; g.fillRect(0,0,w,h);
+  g.fillStyle = '#16364e'; g.fillRect(0,h-30,w,30);
+  // gravel
+  for(let x=0;x<w;x+=4){
+    g.fillStyle = (x/4)%2 ? '#5e5644' : '#6e6450';
+    g.fillRect(x, h-8 + ((x/4)%3===0?-1:0), 4, 8);
+  }
+  // plants
+  for(const px of [30, 130, 235]){
+    for(let i=0;i<5;i++){
+      g.fillStyle = i%2 ? '#2e6e4a' : '#3a8a5a';
+      g.fillRect(px + Math.round(Math.sin(now/800 + i + px)*2), h-10-i*7, 3, 7);
+    }
+  }
+  // bubbles
+  for(let i=0;i<4;i++){
+    const bp = ((now/1400) + i*0.25) % 1;
+    g.fillStyle = `rgba(210,235,250,${0.5*(1-bp)})`;
+    g.fillRect(258 + Math.round(Math.sin(bp*9)*2), Math.floor((h-12)*(1-bp)), 2, 2);
+  }
+  // fish
+  for(const a of aqAnim){
+    if(!a.f) continue;
+    const size = aquariumFishSize(a);
+    const halfW = size.width / 2;
+    const left = 4 + halfW, right = w - 4 - halfW;
+    a.x += a.vx * 0.016;
+    if(a.x < left){ a.x = left; a.vx = Math.abs(a.vx); }
+    if(a.x > right){ a.x = right; a.vx = -Math.abs(a.vx); }
+    g.save();
+    g.translate(Math.floor(a.x), Math.floor(a.y + Math.sin(now/900 + a.ph)*2));
+    if(a.vx < 0) g.scale(-1,1);
+    g.imageSmoothingEnabled = false;
+    g.drawImage(size.sp, -Math.floor(size.width/2), -Math.floor(size.height/2), size.width, size.height);
+    g.restore();
+    if(a.e.sh && Math.random() < 0.02){
+      g.fillStyle = '#ffe9a0';
+      g.fillRect(Math.floor(a.x + rnd(-6,6)), Math.floor(a.y + rnd(-4,4)), 1, 1);
+    }
+  }
+  // glass shine
+  g.fillStyle = 'rgba(255,255,255,0.05)';
+  g.fillRect(6, 4, 3, h-8);
+}
+
+/* ---- POSTCARD ---- */
+function makePostcard(pc){
+  const f = pc.f, L = LOCS[f.loc];
+  const pw = 240, ph = 150, SC = 3;
+  const c = document.createElement('canvas'); c.width = pw; c.height = ph;
+  const g = c.getContext('2d');
+  const sky = skyAt(S.timeT);
+  // scene band
+  const grd = g.createLinearGradient(0,0,0,ph*0.55);
+  grd.addColorStop(0, sky.top); grd.addColorStop(1, sky.bot);
+  g.fillStyle = grd; g.fillRect(0,0,pw,ph*0.55);
+  g.fillStyle = L.water; g.fillRect(0, ph*0.55, pw, ph*0.20);
+  g.fillStyle = L.waterDeep; g.fillRect(0, ph*0.75, pw, ph*0.25);
+  for(let i=0;i<14;i++){ g.fillStyle='rgba(255,255,255,0.10)'; g.fillRect(Math.random()*pw, ph*0.55+Math.random()*ph*0.4, 10, 1); }
+  // fish, big and proud
+  const sp = fishSprite(f, false, !!pc.shiny);
+  const fs = 3;
+  g.imageSmoothingEnabled = false;
+  g.drawImage(sp, Math.floor(pw/2 - sp.width*fs/2), Math.floor(ph*0.42 - sp.height*fs/2), sp.width*fs, sp.height*fs);
+  if(pc.shiny){
+    g.fillStyle = '#ffe9a0';
+    for(let i=0;i<10;i++) g.fillRect(Math.floor(pw/2 + (Math.random()-0.5)*sp.width*fs), Math.floor(ph*0.42 + (Math.random()-0.5)*sp.height*fs), 1, 1);
+  }
+  // frame
+  g.fillStyle = '#10142a';
+  g.fillRect(0,0,pw,3); g.fillRect(0,ph-3,pw,3); g.fillRect(0,0,3,ph); g.fillRect(pw-3,0,3,ph);
+  g.fillStyle = pc.shiny ? '#ffd866' : '#f2c14e';
+  g.fillRect(3,3,pw-6,1); g.fillRect(3,ph-4,pw-6,1); g.fillRect(3,3,1,ph-6); g.fillRect(pw-4,3,1,ph-6);
+  // upscale, then crisp text
+  const big = document.createElement('canvas'); big.width = pw*SC; big.height = ph*SC;
+  const bg = big.getContext('2d');
+  bg.imageSmoothingEnabled = false;
+  bg.drawImage(c, 0, 0, pw*SC, ph*SC);
+  bg.textAlign = 'center';
+  bg.fillStyle = '#10142a';
+  bg.font = 'bold 26px monospace';
+  bg.fillText((pc.shiny?'\u2726 ':'') + f.name.toUpperCase(), pw*SC/2+2, 40+2);
+  bg.fillStyle = pc.shiny ? '#ffd866' : '#e8e0c8';
+  bg.fillText((pc.shiny?'\u2726 ':'') + f.name.toUpperCase(), pw*SC/2, 40);
+  bg.font = '18px monospace';
+  bg.fillStyle = '#ffe9a0';
+  bg.fillText('\u2605'.repeat(f.r), pw*SC/2, 70);
+  bg.fillStyle = '#e8e0c8';
+  bg.fillText(`${pc.cm} cm`, pw*SC/2, ph*SC - 64);
+  bg.font = '14px monospace';
+  bg.fillStyle = '#cfd8ea';
+  const wm = wxLabel(G.wx), sn = curSeason();
+  bg.fillText(`${L.name} \u00b7 Day ${S.day||1} \u00b7 ${sn.label} \u00b7 ${wm.label}`, pw*SC/2, ph*SC - 40);
+  bg.textAlign = 'right';
+  bg.fillStyle = '#f2c14e';
+  bg.fillText('DRIFTWOOD', pw*SC - 18, ph*SC - 16);
+  // download
+  const a = document.createElement('a');
+  a.download = `driftwood-${f.id}-${pc.cm}cm.png`;
+  a.href = big.toDataURL('image/png');
+  a.click();
+  toast('📮 Postcard saved!');
+}
+
+/* ---- HUD ---- */
+function updateHUD(){
+  $('#coins').textContent = S.coins.toLocaleString();
+  $('#locName').textContent = LOCS[S.loc].name;
+  const p = phaseOf(S.timeT);
+  $('#timeIcon').textContent = PHASE_ICON[p];
+  $('#timeName').textContent = PHASE_LABEL[p];
+  const sn = curSeason();
+  $('#seasonChip').innerHTML = `${sn.icon} ${sn.label} <span style="color:var(--dim)">· Day ${S.day||1}</span>`;
+  const wm = wxLabel(G.wx);
+  $('#wxChip').innerHTML = `${wm.icon} ${wm.label}` +
+    (hasGear('vane') ? ` <span style="color:var(--dim)">→ ${wxLabel(G.wxNext).icon}</span>` : '');
+  $('#masterChip').style.display = S.masterOn ? '' : 'none';
+  const sk = $('#streakChip');
+  if((S.streak||0) >= 2){
+    sk.style.display = '';
+    sk.innerHTML = `🔥 ${S.streak} <span style="color:var(--dim)">+${Math.round(streakBonus()*100)}%</span>`;
+  } else sk.style.display = 'none';
+  $('#thermosBtn').style.display = hasGear('thermos') ? '' : 'none';
+  // selectors
+  const rs = $('#rodSel'); rs.innerHTML='';
+  for(const r of RODS) if(S.rods.includes(r.id)){
+    const o = document.createElement('option'); o.value=r.id; o.textContent=r.name;
+    if(r.id===S.rod) o.selected=true; rs.appendChild(o);
+  }
+  const ls = $('#lureSel'); ls.innerHTML='';
+  for(const l of LURES) if(S.lures.includes(l.id)){
+    const o = document.createElement('option'); o.value=l.id; o.textContent=l.name;
+    if(l.id===S.lure) o.selected=true; ls.appendChild(o);
+  }
+}
+$('#rodSel').addEventListener('change', e=>{ S.rod = e.target.value; save(); toast('Rod equipped: <b>'+rodOf().name+'</b>'); });
+$('#lureSel').addEventListener('change', e=>{ S.lure = e.target.value; save(); toast('Lure tied on: <b>'+lureOf().name+'</b>'); });
+$('#muteBtn').addEventListener('click', ()=>{ A.init(); A.toggleMute(); });
+$('#helpBtn').addEventListener('click', ()=>openModal('helpModal'));
+$('#resetBtn').addEventListener('click', ()=>{ if(confirm('Erase all progress and start fresh?')) resetSave(); });
+$('#thermosBtn').addEventListener('click', ()=>{
+  if(G.phase!=='idle'){ toast('Finish your cast first!'); return; }
+  S.timeT = nextPhaseT(S.timeT) % 1;
+  A.sBuy();
+  toast('☕ You sip your coffee. Time drifts by...');
+  updateHUD(); save();
+});
+
+/* ---- SHOP ---- */
+let shopTab = 'rods';
+$('#shopBtn').addEventListener('click', ()=>{ renderShop(); openModal('shopModal'); });
+$$('#shopModal [data-tab]').forEach(b=>b.addEventListener('click', ()=>{
+  shopTab = b.dataset.tab;
+  $$('#shopModal [data-tab]').forEach(x=>x.classList.toggle('on', x===b));
+  renderShop();
+}));
+function renderShop(){
+  const list = $('#shopList'); list.innerHTML='';
+  const items = (shopTab==='rods'?RODS : shopTab==='lures'?LURES : GEAR).filter(it=>!it.secret || (shopTab==='gear' ? S.gear : []).includes(it.id));
+  const ownedArr = shopTab==='rods'?S.rods : shopTab==='lures'?S.lures : S.gear;
+  for(const it of items){
+    const owned = ownedArr.includes(it.id);
+    const row = document.createElement('div'); row.className='item';
+    row.innerHTML = `<div class="ic">${it.icon}</div>
+      <div><div class="nm">${it.name}</div><div class="ds">${it.desc}</div></div>
+      <div class="buyc">${owned ? '<div class="own">OWNED</div>' :
+        it.frags ? `<div class="price">${it.frags}× 🌠 <span style="color:var(--dim)">(${Math.min(S.starFrags||0, it.frags)}/${it.frags})</span></div><button ${(S.starFrags||0)<it.frags?'disabled':''} data-buy="${it.id}">Craft</button>`
+        : `<div class="price">${it.price}⛀</div><button ${S.coins<it.price?'disabled':''} data-buy="${it.id}">Buy</button>`}</div>`;
+    list.appendChild(row);
+  }
+  list.querySelectorAll('[data-buy]').forEach(b=>b.addEventListener('click', ()=>{
+    const id = b.dataset.buy;
+    const it = (shopTab==='rods'?RODS:shopTab==='lures'?LURES:GEAR).find(x=>x.id===id);
+    if(it.frags){
+      if((S.starFrags||0) < it.frags) return;
+      S.starFrags -= it.frags;
+    } else {
+      if(S.coins < it.price) return;
+      S.coins -= it.price;
+    }
+    (shopTab==='rods'?S.rods : shopTab==='lures'?S.lures : S.gear).push(id);
+    if(shopTab==='rods') S.rod = id;
+    if(shopTab==='lures') S.lure = id;
+    A.sBuy();
+    toast(`${it.icon} Bought <b>${it.name}</b>!`);
+    save(); checkAch(); updateHUD(); renderShop();
+  }));
+}
+
+/* ---- FISHOPEDIA ---- */
+let dexLoc = 'pond';
+$('#dexBtn').addEventListener('click', ()=>{ renderDex(); openModal('dexModal'); });
+$$('#dexTabs [data-loc]').forEach(b=>b.addEventListener('click', ()=>{
+  dexLoc = b.dataset.loc;
+  $$('#dexTabs [data-loc]').forEach(x=>x.classList.toggle('on', x===b));
+  renderDex();
+}));
+function renderDex(){
+  $('#stillTab').style.display = (S.dex['echo'] || S.unlocked.includes('still')) ? '' : 'none';
+  const total = dexTotal(), got = Object.keys(S.dex).filter(id=>FISH_BY_ID[id]).length;
+  $('#dexBar').innerHTML = `Recorded: <b>${got}</b> / ${total} species`;
+  $('#dexSub').textContent = LOCS[dexLoc].name;
+  const grid = $('#dexGrid'); grid.innerHTML='';
+  const journal = hasGear('journal');
+  for(const f of FISH.filter(x=>x.loc===dexLoc && (!x.hidden || S.dex[x.id]))){
+    const e = S.dex[f.id];
+    const card = document.createElement('div');
+    card.className = 'dexcard' + (e?' caught':'');
+    const stars = '★'.repeat(f.r) + '<span style="color:#3c4a7c">'+'★'.repeat(5-f.r)+'</span>';
+    const timeStr = f.time ? f.time.map(p=>PHASE_LABEL[p]).join('/') : 'Any time';
+    const bandLabel = f.loc==='drop' ? {near:'Sunlit', mid:'Twilight', far:'Midnight', any:'Any depth'}[f.band] : BANDS[f.band];
+    const almanac = hasGear('almanac');
+    let cond = '';
+    if(almanac && (f.season || f.wx)){
+      const bits = [];
+      if(f.season){
+        const inSeason = f.season.includes(curSeason().id);
+        bits.push(f.season.map(x=>SEASON_BY_ID[x].icon+' '+SEASON_BY_ID[x].label).join('/') + (inSeason?' <span style="color:var(--green)">(in season!)</span>':''));
+      }
+      if(f.wx){
+        const act = G.wx===f.wx;
+        bits.push(wxLabel(f.wx).icon+' '+WX_META[f.wx].label+' only' + (act?' <span style="color:var(--green)">(right now!)</span>':''));
+      }
+      cond = `<br><span style="color:#9ab0d2">${bits.join(' · ')}</span>`;
+    }
+    let meta, name;
+    if(e){
+      name = f.name + ((e.sh||0)>0 ? ' <span style="color:#ffd866">✦</span>' : '');
+      meta = `Time: ${timeStr}<br>Spot: ${bandLabel}<br>Caught: ${e.n} · Best: ${e.best} cm${(e.sh||0)>0?` · Shiny: ${e.sh}`:''}${cond}`;
+    } else {
+      name = '??????';
+      meta = journal
+        ? `Time: ${timeStr}<br>Spot: ${bandLabel}<br><span style="color:#7a86ac">Journal hint${f.id==='hummer' ? ((S.hummerMiss||0)>=3 ? ': it listens. Strike WITH the music \u2014 on the beat.' : ': it listens.') : f.tags.includes('fly')?': loves flies':f.tags.includes('glow')?': drawn to glow':f.tags.includes('mist')?': follows pale lights':': keep trying!'}</span>${cond}`
+        : 'Time: ???<br>Spot: ???' + cond;
+    }
+    card.innerHTML = `<div class="top"><canvas width="84" height="44"></canvas>
+      <div><div class="nm ${e?'':'unk'}">${name}</div><div class="stars">${stars}</div></div></div>
+      <div class="meta">${meta}</div>` + (e?`<div class="fl">${f.fl}</div>`:'');
+    grid.appendChild(card);
+    drawFishInto(card.querySelector('canvas'), f, !e);
+  }
+}
+
+/* ---- ACHIEVEMENTS ---- */
+$('#achBtn').addEventListener('click', ()=>{ renderAch(); openModal('achModal'); });
+function renderAch(){
+  const done = ACH.filter(a=>S.ach[a.id]).length;
+  $('#achSub').textContent = `${done} / ${ACH.length} earned`;
+  const list = $('#achList'); list.innerHTML='';
+  for(const a of ACH){
+    const d = !!S.ach[a.id];
+    const sec = a.secret && !d;
+    const row = document.createElement('div'); row.className = 'ach'+(d?' done':'');
+    row.innerHTML = `<div class="ic">${sec?'❓':a.icon}</div>
+      <div><div class="nm">${sec?'???':a.name}</div><div class="ds">${sec?'Some stories must be finished to be told.':a.desc}</div></div>
+      <div class="st">${d?'✔ DONE':'—'}</div>`;
+    list.appendChild(row);
+  }
+}
+
+/* ---- REQUEST BOARD ---- */
+$('#questBtn').addEventListener('click', ()=>{ ensureQuests(); renderQuests(); openModal('questModal'); });
+function renderQuests(){
+  ensureQuests();
+  cotdEnsure();
+  const cp = $('#cotdPanel');
+  {
+    const ty = DERBY_TYPES.find(t=>t.id===S.cotd.ty);
+    const L = LOCS[S.cotd.loc];
+    const locked = !S.unlocked.includes(S.cotd.loc);
+    cp.innerHTML = `<div class="qcard" style="border-color:var(--blue); display:block;">
+      <div style="color:var(--blue); margin-bottom:5px;">📅 CAST OF THE DAY — ${S.cotd.date}</div>
+      <div style="margin-bottom:6px;">${ty.name} at <b>${L.name}</b>${locked?' <span style="color:var(--red)">(spot locked)</span>':''}
+        <span style="color:var(--dim)">— same challenge in every copy of Driftwood today.</span></div>
+      <div class="statrow"><span>Your score</span><b>${ty.fmt(Math.round(S.cotd.score*10)/10)}</b></div>
+      ${(S.cotd.hist||[]).map(h=>`<div class="statrow" style="color:var(--dim)"><span>${h.date}</span><span>${DERBY_TYPES.find(t=>t.id===h.ty).fmt(Math.round(h.score*10)/10)}</span></div>`).join('')}
+      <button id="cotdShare" style="margin-top:6px;">📮 Share card</button>
+    </div>`;
+    $('#cotdShare').addEventListener('click', cotdCard);
+  }
+  const dp = $('#derbyPanel'); dp.innerHTML = '';
+  if(S.derby && S.derby.day === (S.day||1) && !S.derby.resolved){
+    const ty = DERBY_TYPES.find(t=>t.id===S.derby.ty);
+    const rows = derbyStandings();
+    dp.innerHTML = `<div class="qcard" style="border-color:var(--gold); display:block;">
+      <div style="color:var(--gold); margin-bottom:6px;">🏆 DERBY DAY — ${ty.name}</div>
+      <div style="color:var(--dim); margin-bottom:7px;">${ty.desc} Prizes: ${DERBY_PAY.join('⛀ / ')}⛀. Standings update through the day.</div>
+      ${rows.map((r,i)=>`<div class="statrow" style="${r.you?'color:var(--gold)':''}">
+        <span>#${i+1} ${r.rival?'⚡ ':''}${r.name}</span><b>${ty.fmt(r.score)}</b></div>`).join('')}
+    </div>`;
+  }
+  const done = S.quests.list.filter(q=>q.claimed).length;
+  $('#questSub').textContent = `Day ${S.day||1} — new jobs every morning`;
+  const list = $('#questList'); list.innerHTML='';
+  for(let i=0;i<S.quests.list.length;i++){
+    const q = S.quests.list[i];
+    const row = document.createElement('div');
+    row.className = 'qcard' + (q.claimed?' claimed':q.done?' done':'');
+    const pct = Math.min(100, Math.round(100*q.p/q.n));
+    row.innerHTML = `<div class="qd">${q.desc}
+        <div class="qbar"><i style="width:${pct}%"></i></div>
+        <span style="color:var(--dim)">${Math.min(q.p,q.n)}/${q.n}</span></div>
+      <div class="qrw"><div class="price">+${q.reward}⛀</div>${
+        q.claimed ? '<div class="own">CLAIMED</div>'
+        : q.done ? `<button class="gold" data-claim="${i}">Claim</button>`
+        : '<div style="color:var(--dim)">—</div>'}</div>`;
+    list.appendChild(row);
+  }
+  list.querySelectorAll('[data-claim]').forEach(b=>b.addEventListener('click', ()=>{
+    const q = S.quests.list[+b.dataset.claim];
+    if(!q || !q.done || q.claimed) return;
+    q.claimed = true;
+    addCoins(q.reward);
+    S.questsDone = (S.questsDone||0)+1;
+    A.sCatch(2);
+    toast(`📋 <b>+${q.reward}⛀</b> — much obliged, angler.`);
+    save(); checkAch(); updateHUD(); renderQuests();
+  }));
+}
+
+/* ---- CABIN ---- */
+let cabinTab = 'trophies';
+$('#cabinBtn').addEventListener('click', ()=>{ renderCabin(); openModal('cabinModal'); });
+$$('#cabinModal [data-ctab]').forEach(b=>b.addEventListener('click', ()=>{
+  cabinTab = b.dataset.ctab;
+  $$('#cabinModal [data-ctab]').forEach(x=>x.classList.toggle('on', x===b));
+  renderCabin();
+}));
+function renderCabin(){
+  $('#cabinSub').textContent = `Trophy bonus: +${Math.round(trophyBonus()*100)}% sale value (1% per trophy, max 20%)`;
+  const body = $('#cabinBody'); body.innerHTML='';
+  if(cabinTab==='trophies'){
+    const caught = FISH.filter(f=>S.dex[f.id]).sort((a,b)=>b.r-a.r || a.name.localeCompare(b.name));
+    if(!caught.length){ body.innerHTML = '<div style="color:var(--dim); line-height:1.8;">The walls are bare. Catch a fish, then come hang its memory here.</div>'; return; }
+    for(const f of caught){
+      const e = S.dex[f.id];
+      const mounted = !!S.trophies[f.id];
+      const cost = TROPHY_COST[f.r];
+      const row = document.createElement('div');
+      row.className = 'plaque' + (mounted?' mounted':'');
+      row.innerHTML = `<canvas width="68" height="36"></canvas>
+        <div class="pd"><b style="color:${RCOLOR[f.r]}">${f.name}</b>${(e.sh||0)>0?' <span style="color:#ffd866">✦</span>':''}<br>
+          <span style="color:var(--dim)">Best: ${e.best} cm</span></div>
+        <div class="qrw">${ mounted ? '<div class="mt">★ MOUNTED</div>'
+          : `<div class="price">${cost}⛀</div><button ${S.coins<cost?'disabled':''} data-mount="${f.id}">Mount</button>`}</div>`;
+      body.appendChild(row);
+      drawFishInto(row.querySelector('canvas'), f, false, (e.sh||0)>0);
+    }
+    body.querySelectorAll('[data-mount]').forEach(b=>b.addEventListener('click', ()=>{
+      const f = FISH_BY_ID[b.dataset.mount];
+      const cost = TROPHY_COST[f.r];
+      if(S.coins < cost || S.trophies[f.id]) return;
+      S.coins -= cost;
+      S.trophies[f.id] = true;
+      A.sBuy();
+      toast(`🪧 <b>${f.name}</b> mounted! Sale prices +${Math.round(trophyBonus()*100)}%.`);
+      save(); checkAch(); updateHUD(); renderCabin();
+    }));
+  } else if(cabinTab==='aquarium'){
+    const aq = S.aquarium||[];
+    body.innerHTML = `<canvas id="aqCanvas" width="280" height="120" style="width:100%; image-rendering:pixelated; border:2px solid var(--edge); background:#1c2a3e; display:block; margin-bottom:8px;"></canvas>
+      <div class="aq-caption">${aq.length} / 12 places filled. Kept fish can be sold later, or released back to the water.</div>
+      <div id="aqList"></div>`;
+    aqAnim = aq.map((e,i)=>({ e, i, f:FISH_BY_ID[e.id],
+      x:rnd(20,260), y:rnd(18,96), vx:(Math.random()<0.5?-1:1)*rnd(5,13), ph:rnd(6.28) }));
+    const list = $('#aqList');
+    for(let i=0;i<aq.length;i++){
+      const e = aq[i], f = FISH_BY_ID[e.id];
+      if(!f) continue;
+      const row = document.createElement('div'); row.className='statrow';
+      row.innerHTML = `<span>${e.sh?'<span style="color:#ffd866">\u2726</span> ':''}${f.name} \u00b7 ${e.cm} cm</span>
+        <span class="aq-actions"><button data-aqsell="${i}">Sell +${e.v}⛀</button><button data-aqrel="${i}">Release</button></span>`;
+      list.appendChild(row);
+    }
+    list.querySelectorAll('[data-aqsell]').forEach(b=>b.addEventListener('click', ()=>{
+      const i = +b.dataset.aqsell; const e = S.aquarium[i]; if(!e) return;
+      addCoins(e.v); S.aquarium.splice(i,1);
+      A.sBuy(); toast(`Sold for +${e.v}⛀.`);
+      save(); updateHUD(); renderCabin();
+    }));
+    list.querySelectorAll('[data-aqrel]').forEach(b=>b.addEventListener('click', ()=>{
+      const i = +b.dataset.aqrel; const e = S.aquarium[i]; if(!e) return;
+      S.aquarium.splice(i,1);
+      toast(`🌊 ${FISH_BY_ID[e.id].name} slips back into the water. Swim well.`);
+      save(); renderCabin();
+    }));
+  } else if(cabinTab==='stats'){
+    const eligible = !!S.ach['dex'] && !!S.ach['fourleg'];
+    if(S.master){
+      const mrow = document.createElement('div'); mrow.className='statrow';
+      mrow.style.color = 'var(--gold)';
+      mrow.innerHTML = `<span>⭐ MASTER ANGLER</span><button id="masterTgl">${S.masterOn?'Master Waters: ON':'Master Waters: OFF'}</button>`;
+      body.appendChild(mrow);
+      const note = document.createElement('div');
+      note.style.cssText = 'color:var(--dim); line-height:1.7; padding:4px;';
+      note.textContent = 'Master Waters: fights +35%, sizes run bigger, values +25%, shinies twice as common.';
+      body.appendChild(note);
+      setTimeout(()=>{ const b=$('#masterTgl'); if(b) b.addEventListener('click', ()=>{
+        S.masterOn = !S.masterOn;
+        A.sBuy();
+        toast(S.masterOn ? '⭐ <b>Master Waters.</b> Everything out there just got bigger and meaner.' : 'The water settles back to normal.');
+        save(); updateHUD(); renderCabin();
+      });}, 0);
+    } else if(eligible){
+      const mrow = document.createElement('div');
+      mrow.style.cssText = 'text-align:center; padding:8px;';
+      mrow.innerHTML = `<button id="masterClaim" class="gold">⭐ Claim your Master License</button>`;
+      body.appendChild(mrow);
+      setTimeout(()=>{ const b=$('#masterClaim'); if(b) b.addEventListener('click', ()=>{
+        S.master = true;
+        A.sAch();
+        toast('⭐ <b>MASTER ANGLER.</b> Every fish, every legend, every water. The license is yours \u2014 and so is the option of harder, richer seas.', 'ach');
+        save(); checkAch(); renderCabin();
+      });}, 0);
+    }
+    let bigName='—', bigCm=0;
+    for(const [id,e] of Object.entries(S.dex)){
+      const f = FISH_BY_ID[id];
+      if(f && e.best > bigCm){ bigCm = e.best; bigName = f.name; }
+    }
+    const rows = [
+      ['Day on the water', S.day||1],
+      ['Season', curSeason().icon+' '+curSeason().label],
+      ['Casts', S.casts],
+      ['Fish caught', S.totalCatches],
+      ['Catch rate', S.casts ? Math.round(100*S.totalCatches/S.casts)+'%' : '—'],
+      ['Biggest catch', bigCm? `${bigName} · ${bigCm} cm` : '—'],
+      ['Shiny fish', S.shinies||0],
+      ['Junk hauled', S.junkCount],
+      ['Requests done', S.questsDone||0],
+      ['Trophies mounted', trophyCount()],
+      ['Fish kept', (S.aquarium||[]).length+' / 12'],
+      ['Cat fed', '🐱 '+(S.catFed||0)],
+      ['Derby wins', '🏆 '+(S.derbyWins||0)],
+      ['Best streak', '🔥 '+(S.bestStreak||0)],
+      ['Letters found', `${Math.min(S.bottles||0,7)} / 7`],
+      ['Star fragments', '🌠 '+(S.starFrags||0)],
+      ['Species recorded', `${Object.keys(S.dex).filter(id=>FISH_BY_ID[id]).length} / ${dexTotal()}`],
+      ['Spots unlocked', `${S.unlocked.length} / ${Object.keys(LOCS).filter(k=>!LOCS[k].hidden || S.unlocked.includes(k)).length}`],
+      ['Lifetime coins', (S.lifetimeCoins||0).toLocaleString()+'⛀'],
+    ];
+    for(const [k,v] of rows){
+      const d = document.createElement('div'); d.className='statrow';
+      d.innerHTML = `<span>${k}</span><b>${v}</b>`;
+      body.appendChild(d);
+    }
+  } else {
+    body.innerHTML = `<div style="line-height:1.8; color:var(--dim)">Your save lives in this browser. Copy it out to back it up or move it to another machine.</div>
+      <textarea id="saveBox" spellcheck="false" placeholder="Paste a save here to import..."></textarea>
+      <div style="display:flex; gap:8px;">
+        <button id="expBtn" class="gold">Export save</button>
+        <button id="impBtn">Import save</button>
+        <button id="resetBtn2" style="margin-left:auto">Reset save</button>
+      </div>`;
+    $('#expBtn').addEventListener('click', ()=>{
+      const txt = JSON.stringify(S);
+      $('#saveBox').value = txt;
+      if(navigator.clipboard && navigator.clipboard.writeText)
+        navigator.clipboard.writeText(txt).then(()=>toast('📦 Save copied to clipboard!')).catch(()=>toast('📦 Save shown below — copy it.'));
+      else { $('#saveBox').select(); toast('📦 Save shown below — copy it.'); }
+    });
+    $('#impBtn').addEventListener('click', ()=>{
+      try{
+        const d = JSON.parse($('#saveBox').value);
+        if(!d || typeof d.coins !== 'number') throw 0;
+        localStorage.setItem(SAVE_KEY, JSON.stringify(d));
+        toast('📦 Save imported! Reloading...');
+        setTimeout(()=>location.reload(), 600);
+      }catch(e){ toast('That doesn\u2019t look like a Driftwood save.'); }
+    });
+    $('#resetBtn2').addEventListener('click', ()=>{ if(confirm('Erase all progress and start fresh?')) resetSave(); });
+  }
+}
+
+/* ---- TRAVEL ---- */
+$('#travelBtn').addEventListener('click', ()=>{ renderTravel(); openModal('travelModal'); });
+function renderTravel(){
+  const list = $('#travelList'); list.innerHTML='';
+  for(const [k,L] of Object.entries(LOCS)){
+    if(L.hidden && !S.dex['echo'] && !S.unlocked.includes(k)) continue;
+    const unlocked = S.unlocked.includes(k);
+    const here = S.loc===k;
+    const row = document.createElement('div');
+    row.className = 'locrow'+(here?' here':'');
+    const n = dexCountLoc(S,k), tot = locTotal(k);
+    row.innerHTML = `<div class="sw" style="background:linear-gradient(${L.water},${L.waterDeep})"></div>
+      <div><div class="nm">${L.hidden?'🕯 ':''}${L.name}</div><div class="ds">${L.desc}<br>Fishopedia: ${n}/${tot}</div></div>
+      <div class="act">${
+        here ? '<div class="own" style="color:var(--green)">YOU\u2019RE HERE</div>'
+        : unlocked ? `<button data-go="${k}">Go</button>`
+        : L.hidden ? `<button data-unlock="${k}">Board the boat</button>`
+        : `<div class="price">${L.price}⛀ pass</div><button ${S.coins<L.price?'disabled':''} data-unlock="${k}">Buy pass</button>`
+      }</div>`;
+    list.appendChild(row);
+  }
+  list.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click', ()=>{
+    travelTo(b.dataset.go);
+  }));
+  list.querySelectorAll('[data-unlock]').forEach(b=>b.addEventListener('click', ()=>{
+    const k = b.dataset.unlock; const L = LOCS[k];
+    if(S.coins < L.price) return;
+    S.coins -= L.price; S.unlocked.push(k);
+    A.sBuy();
+    toast(k==='still' ? '🛶 The boat slides out into water that holds perfectly still. The ferryman says nothing, kindly.'
+                      : `🗺 <b>${L.name}</b> unlocked!`);
+    save(); checkAch(); updateHUD();
+    travelTo(k);
+  }));
+}
+function travelTo(k){
+  G.hole = null;
+  if(G.phase!=='idle' && G.phase!=='waiting'){ toast('Land your fish first!'); return; }
+  S.loc = k; G.phase='idle'; G.reel=null; G.hooked=null;
+  save(); updateHUD(); closeModals();
+  setHint(`Welcome to ${LOCS[k].name}. Hold to cast.`);
+}
+
+/* ---- CATCH CARD ---- */
+function showCatch(f, cm, value, isNew, isRecord, frac, shiny){
+  $('#newBadge').style.display = isNew ? 'inline-block' : 'none';
+  $('#shinyBadge').style.display = shiny ? 'inline-block' : 'none';
+  $('#catchName').textContent = (shiny?'✦ ':'') + f.name;
+  $('#catchName').style.color = shiny ? '#ffd866' : RCOLOR[f.r];
+  $('#catchStars').innerHTML = '★'.repeat(f.r)+'<span style="color:#3c4a7c">'+'★'.repeat(5-f.r)+'</span>';
+  drawFishInto($('#catchCanvas'), f, false, shiny);
+  const sizeTag = frac>=0.9 ? ' <span class="recordTag">HUGE!</span>' : isRecord ? ' <span class="recordTag">NEW RECORD!</span>' : '';
+  const shinyTag = shiny ? ' <span class="recordTag" style="color:#ffd866">✦ SHINY ×2.5</span>' : '';
+  $('#catchInfo').innerHTML =
+    `${RARITY[f.r]} · ${LOCS[f.loc].name}<br>Length: <b>${cm} cm</b>${sizeTag}${shinyTag}<br>Worth <b>${value}⛀</b>`;
+  $('#sellBtn').textContent = `Sell +${value}⛀`;
+  $('#keepBtn').disabled = (S.aquarium||[]).length >= 12;
+  $('#keepBtn').textContent = (S.aquarium||[]).length >= 12 ? '🐠 Tank full' : '🐠 Keep';
+  $('#feedBtn').style.display = catToday() ? '' : 'none';
+  $('#catchFlavor').textContent = f.fl;
+  openModal('catchModal');
+}
+function resolveCatch(how){
+  const pc = G.pendingCatch; if(!pc) return;
+  G.pendingCatch = null;
+  if(how==='keep'){
+    S.aquarium.push({ id:pc.f.id, cm:pc.cm, sh:pc.shiny?1:0, v:pc.value });
+    S.flags.kept = true;
+    toast(`🐠 <b>${pc.f.name}</b> joins the cabin aquarium.`);
+  } else if(how==='feed'){
+    S.catFed = (S.catFed||0)+1;
+    A.sNibble();
+    toast(S.catFed===1 ? '🐱 The cat accepts your offering. It watches you differently now.'
+        : S.catFed===3 ? '🐱 The cat has decided the dock is home. It\u2019s yours now. Or you\u2019re its.'
+        : S.catFed===5 ? '🐱 The cat purrs. From now on, it will <b>stare</b> when something big is cruising.'
+        : `🐱 The cat eats the ${pc.f.name}. (+0⛀, +1 friendship)`);
+  } else {
+    addCoins(pc.value);
+  }
+  save(); checkAch(); updateHUD();
+}
+$('#sellBtn').addEventListener('click', ()=>{ resolveCatch('sell'); closeModals(); });
+$('#keepBtn').addEventListener('click', ()=>{ if((S.aquarium||[]).length<12){ resolveCatch('keep'); closeModals(); } });
+$('#feedBtn').addEventListener('click', ()=>{ resolveCatch('feed'); closeModals(); });
+$('#postBtn').addEventListener('click', ()=>{ if(G.pendingCatch) makePostcard(G.pendingCatch); });
+
+/* ============================================================
+   INPUT
+   ============================================================ */
+function uiOpen(){ return $('#shade').classList.contains('open'); }
+cv.addEventListener('pointerdown', e=>{ e.preventDefault(); if(!uiOpen()) press(); });
+window.addEventListener('pointerup', ()=>{ if(!uiOpen()) release(); else G.holding=false; });
+document.addEventListener('keydown', e=>{
+  if(e.code==='Space'){
+    e.preventDefault();
+    if(uiOpen()){
+      if($('#catchModal').classList.contains('open')) closeModals();
+      return;
+    }
+    if(!e.repeat) press();
+  }
+});
+document.addEventListener('keyup', e=>{
+  if(e.code==='Space' && !uiOpen()) release();
+});
+window.addEventListener('blur', ()=>{ G.holding=false; });
+
+/* ============================================================
+   MAIN LOOP + BOOT
+   ============================================================ */
+let lastT = performance.now();
+function frame(now){
+  let dt = (now - lastT)/1000; lastT = now;
+  dt = Math.min(dt, 0.05);
+  if(!uiOpen()) update(dt, now);
+  drawScene(now, dt);
+  // HUD time chip can change as the day turns
+  const p = phaseOf(S.timeT);
+  if(p !== frame._p){ frame._p = p; updateHUD(); }
+  if($('#cabinModal').classList.contains('open') && cabinTab==='aquarium') drawAquarium(now);
+  requestAnimationFrame(frame);
+}
+
+load();
+ensureQuests();
+cotdEnsure();
+if(derbyDay(S.day||1) && (!S.derby || S.derby.day !== (S.day||1))) startDerby();
+rollWx(true);
+updateHUD();
+$('#muteBtn').textContent = S.muted ? '♪ Off' : '♪ On';
+if(!S.flags.helped){ S.flags.helped = true; save(); openModal('helpModal'); }
+setHint(iced() ? 'The water is frozen over. Hold to aim your drill.' : 'Hold SPACE or the mouse to charge a cast');
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
