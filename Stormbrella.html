@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Umbrella Drift</title>
+<style>
+body { margin:0; overflow:hidden; background:#0a0f1f; }
+canvas { display:block; }
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+function resize(){
+  canvas.width = innerWidth;
+  canvas.height = innerHeight;
+}
+resize();
+addEventListener("resize", resize);
+
+// PLAYER
+const player = {
+  x: canvas.width/2,
+  y: 150,
+  vx: 0,
+  vy: 2,
+  umbrella: false
+};
+
+// CONTROL SYSTEM (FIXED)
+let targetX = canvas.width/2;
+
+// TOUCH CONTROL (PRIMARY)
+canvas.addEventListener("touchstart", e=>{
+  player.umbrella = true;
+  targetX = e.touches[0].clientX;
+});
+
+canvas.addEventListener("touchmove", e=>{
+  targetX = e.touches[0].clientX;
+});
+
+canvas.addEventListener("touchend", ()=> player.umbrella=false);
+
+// MOUSE (for desktop)
+canvas.addEventListener("mousedown", e=>{
+  player.umbrella = true;
+  targetX = e.clientX;
+});
+canvas.addEventListener("mousemove", e=>{
+  targetX = e.clientX;
+});
+canvas.addEventListener("mouseup", ()=> player.umbrella=false);
+
+// OPTIONAL TILT (fallback only)
+let tilt = 0;
+window.addEventListener("deviceorientation", e=>{
+  if(e.gamma !== null){
+    tilt = e.gamma / 30;
+  }
+});
+
+// GAME STATE
+let obstacles = [];
+let wind = 0;
+let score = 0;
+let combo = 0;
+let slowmo = 0;
+
+// SPAWN
+function spawnObstacle(){
+  const types=["twig","leaf","glass"];
+  obstacles.push({
+    x: Math.random()*canvas.width,
+    y: canvas.height+50,
+    size: 20+Math.random()*20,
+    type: types[Math.floor(Math.random()*3)],
+    rot: Math.random()*Math.PI,
+    spin:(Math.random()-0.5)*0.1,
+    drift:(Math.random()-0.5)*1.5
+  });
+}
+
+// UPDATE
+function update(){
+
+  // WIND
+  wind += (Math.random()-0.5)*0.02;
+  wind = Math.max(-2, Math.min(2, wind));
+
+  // SMOOTH FOLLOW (MAIN CONTROL)
+  let dx = targetX - player.x;
+  player.vx += dx * 0.02;
+
+  // ADD TILT BONUS (if available)
+  player.vx += tilt * 0.5;
+
+  // WIND EFFECT
+  player.vx += wind * 0.05;
+
+  // VERTICAL
+  if(player.umbrella){
+    player.vy -= 0.15;
+    player.vx += wind * 0.2;
+  } else {
+    player.vy += 0.25;
+  }
+
+  player.vx *= 0.9;
+  player.vy = Math.min(player.vy,6);
+
+  player.x += player.vx;
+  player.y += player.vy;
+
+  if(player.x<0) player.x=0;
+  if(player.x>canvas.width) player.x=canvas.width;
+
+  // OBSTACLES
+  for(let o of obstacles){
+    o.y -= player.vy;
+    o.x += o.drift + wind*0.3;
+    o.rot += o.spin;
+
+    let dx=player.x-o.x;
+    let dy=player.y-o.y;
+    let dist=Math.sqrt(dx*dx+dy*dy);
+
+    // PERFECT DRIFT
+    if(dist < o.size+20 && dist > o.size){
+      combo++;
+      score += 20*combo;
+      slowmo = 5;
+      player.vy -= 2;
+    }
+
+    if(dist < o.size){
+      alert("Game Over ☠️ Score: "+Math.floor(score));
+      location.reload();
+    }
+  }
+
+  slowmo--;
+
+  obstacles = obstacles.filter(o=>o.y>-100);
+
+  if(Math.random()<0.015) spawnObstacle();
+
+  score += 0.15*(combo+1);
+}
+
+// DRAW
+function draw(){
+  ctx.fillStyle="rgba(10,15,31,0.5)";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  // RAIN
+  ctx.strokeStyle="rgba(180,200,255,0.3)";
+  for(let i=0;i<60;i++){
+    let x=Math.random()*canvas.width;
+    let y=Math.random()*canvas.height;
+    ctx.beginPath();
+    ctx.moveTo(x,y);
+    ctx.lineTo(x+wind*5,y+10);
+    ctx.stroke();
+  }
+
+  // UMBRELLA GLOW
+  if(player.umbrella){
+    let g = ctx.createRadialGradient(
+      player.x,player.y-20,10,
+      player.x,player.y-20,90
+    );
+    g.addColorStop(0,"rgba(0,255,255,0.4)");
+    g.addColorStop(1,"rgba(0,255,255,0)");
+    ctx.fillStyle=g;
+    ctx.beginPath();
+    ctx.arc(player.x,player.y-20,90,0,Math.PI*2);
+    ctx.fill();
+  }
+
+  // PLAYER
+  ctx.fillStyle="white";
+  ctx.beginPath();
+  ctx.arc(player.x,player.y,10,0,Math.PI*2);
+  ctx.fill();
+
+  // UMBRELLA
+  if(player.umbrella){
+    ctx.beginPath();
+    ctx.arc(player.x,player.y-20,25,Math.PI,0);
+    ctx.strokeStyle="cyan";
+    ctx.lineWidth=3;
+    ctx.stroke();
+  }
+
+  // OBSTACLES
+  for(let o of obstacles){
+    ctx.save();
+    ctx.translate(o.x,o.y);
+    ctx.rotate(o.rot);
+
+    if(o.type==="twig"){
+      ctx.strokeStyle="#6b4f2a";
+      ctx.lineWidth=3;
+      ctx.beginPath();
+      ctx.moveTo(-o.size,0);
+      ctx.lineTo(o.size,0);
+      ctx.stroke();
+    }
+
+    if(o.type==="leaf"){
+      ctx.fillStyle="#3fa34d";
+      ctx.beginPath();
+      ctx.ellipse(0,0,o.size*0.6,o.size,0,0,Math.PI*2);
+      ctx.fill();
+    }
+
+    if(o.type==="glass"){
+      ctx.fillStyle="rgba(200,230,255,0.8)";
+      ctx.beginPath();
+      ctx.moveTo(0,-o.size);
+      ctx.lineTo(o.size,o.size);
+      ctx.lineTo(-o.size,o.size);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
+  // UI
+  ctx.fillStyle="white";
+  ctx.font="18px Arial";
+  ctx.fillText("Score: "+Math.floor(score),20,30);
+  ctx.fillText("Combo: "+combo,20,55);
+}
+
+// LOOP
+function loop(){
+  update();
+  draw();
+  requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body>
+</html>
