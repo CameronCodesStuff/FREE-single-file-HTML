@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VibeMatch</title>
+
+<style>
+body{
+    margin:0;
+    background:#f5f2f8;
+    font-family:Arial;
+    color:#27202e;
+    display:flex;
+    justify-content:center;
+    padding:30px;
+}
+.app{width:420px}
+.card{
+    background:white;
+    border-radius:25px;
+    overflow:hidden;
+    box-shadow:0 15px 45px #0002;
+}
+.pic{
+    height:420px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:130px;
+    background:linear-gradient(135deg,#ff9ab3,#8b72e9);
+}
+.info{padding:22px}
+.actions{
+    display:flex;
+    gap:12px;
+    margin-top:15px;
+}
+.actions button{
+    flex:1;
+    padding:15px;
+    border:0;
+    border-radius:15px;
+    font-size:25px;
+    cursor:pointer;
+}
+.no{background:#eee}
+.yes{background:#ffd5df}
+.tag{
+    display:inline-block;
+    background:#f0eafa;
+    padding:7px 10px;
+    border-radius:20px;
+    margin:4px;
+    font-size:12px;
+}
+.result{
+    text-align:center;
+    padding:30px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="app">
+
+<h1>VibeMatch 💘</h1>
+
+<p id="counter">Profile 1 of 6</p>
+
+<div class="card" id="card">
+
+<div class="pic" id="picture">😎</div>
+
+<div class="info">
+
+<h2 id="name">Jordan, 24</h2>
+
+<p id="bio">
+Professional overthinker. Makes elite toast.
+</p>
+
+<span class="tag">Coffee</span>
+<span class="tag">Chaos</span>
+
+<div class="actions">
+<button class="no" onclick="swipe(false)">✕</button>
+<button class="yes" onclick="swipe(true)">♥</button>
+</div>
+
+</div>
+</div>
+
+<div class="result" id="result"></div>
+
+</div>
+
+<script>
+
+const people=[
+    ["Jordan, 24","😎","Professional overthinker. Makes elite toast."],
+    ["Sam, 27","🧑‍🎤","Will absolutely steal your chips."],
+    ["Riley, 22","🦝","Has 14 hobbies and finishes none."],
+    ["Casey, 29","🕶️","Claims to enjoy early mornings."],
+    ["Taylor, 25","🐸","Sends frog memes at 3 AM."],
+    ["Morgan, 31","🧙","Owns a suspiciously large collection of mugs."]
+];
+
+let index=0;
+let likes=0;
+
+function swipe(liked){
+
+    if(liked) likes++;
+
+    index++;
+
+    if(index>=people.length){
+
+        document.getElementById("card").style.display="none";
+        document.getElementById("counter").textContent="";
+
+        document.getElementById("result").innerHTML=`
+            <h2>Compatibility Report</h2>
+            <p>You liked ${likes} people.</p>
+            <p>Your type appears to be:</p>
+            <h2>questionable but consistent.</h2>
+            <button onclick="location.reload()">Start Again</button>
+        `;
+
+        return;
+    }
+
+    const person=people[index];
+
+    document.getElementById("name").textContent=person[0];
+    document.getElementById("picture").textContent=person[1];
+    document.getElementById("bio").textContent=person[2];
+
+    document.getElementById("counter").textContent=
+        `Profile ${index+1} of ${people.length}`;
+}
+
+</script>
+
+</body>
+</html>
