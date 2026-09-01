@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ARCHIVE_17</title>
+
+<style>
+body{
+    margin:0;
+    background:#08090b;
+    color:#c8c8c8;
+    font:16px monospace;
+}
+main{
+    max-width:800px;
+    margin:auto;
+    padding:60px 25px;
+}
+h1{
+    font-size:52px;
+    color:white;
+}
+.box{
+    border:1px solid #333;
+    padding:20px;
+    margin:20px 0;
+}
+button{
+    color:#75d9ff;
+    background:none;
+    border:0;
+    font:inherit;
+    cursor:pointer;
+    text-decoration:underline;
+}
+.glitch{
+    animation:flicker 2s infinite;
+}
+.hidden{display:none}
+@keyframes flicker{
+    50%{opacity:.55}
+}
+.red{color:#ff6075}
+</style>
+</head>
+
+<body>
+
+<main>
+
+<p>ARCHIVE_17 / STATUS: DEGRADED</p>
+
+<h1 class="glitch">THE LAST ENTRY</h1>
+
+<div class="box">
+    This archive should not be online.
+    If you found it, read everything before leaving.
+</div>
+
+<p>Entry 01: The lights went out at 02:13.</p>
+
+<p>Entry 02: Everyone remembers the door. Nobody remembers opening it.</p>
+
+<button onclick="reveal('entry3')">
+    [ open entry 03 ]
+</button>
+
+<div class="box hidden" id="entry3">
+    Entry 03: There was a photograph on the floor.
+    The photograph showed this website.
+</div>
+
+<br><br>
+
+<button onclick="reveal('photo')">
+    [ inspect photograph ]
+</button>
+
+<div class="box hidden" id="photo">
+    The timestamp reads <b>02:13</b>.
+    That's when you first opened this page.
+</div>
+
+<br>
+
+<button onclick="reveal('system')">
+    [ system message ]
+</button>
+
+<div class="box hidden red" id="system">
+    You have reached the end.
+
+    Or the beginning.
+
+    Refresh if you want to see whether it noticed.
+</div>
+
+</main>
+
+<script>
+function reveal(id){
+    document.getElementById(id).classList.remove("hidden");
+}
+</script>
+
+</body>
+</html>
