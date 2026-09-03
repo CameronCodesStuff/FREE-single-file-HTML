@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Endless Platformer</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0d0018; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; font-family:'Courier New',monospace; color:#fff; overflow:hidden; }
+canvas { border-radius:4px; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+canvas.width = Math.min(640, window.innerWidth);
+canvas.height = Math.min(400, window.innerHeight - 20);
+const W = canvas.width, H = canvas.height;
+
+const GROUND = H - 60;
+const GRAVITY = 0.55, JUMP_FORCE = -12, SPEED = 4;
+
+let player, platforms, coins, enemies, particles, score, best, state, speed, spawnTimer, frame;
+
+function init() {
+  player = { x:100, y:GROUND-40, w:28, h:36, vy:0, onGround:false, jumps:0, color:'#a0f' };
+  platforms = [{ x:0, y:GROUND, w:W*2, h:60 }]; // starting ground
+  coins = []; enemies = []; particles = [];
+  score = 0; frame = 0; speed = SPEED; spawnTimer = 0;
+  if (!best) best = 0;
+  state = 'idle';
+}
+
+const keys = {};
+document.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (['Space','ArrowUp','KeyW'].includes(e.code)) e.preventDefault();
+  if (state === 'idle' || state === 'dead') { state = 'playing'; if (state==='dead') init(); return; }
+  if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') jump();
+});
+document.addEventListener('keyup', e => keys[e.code] = false);
+canvas.addEventListener('click', () => { if (state==='idle'||state==='dead') { init(); state='playing'; } else jump(); });
+canvas.addEventListener('touchstart', e => { e.preventDefault(); if (state==='idle'||state==='dead') { init(); state='playing'; } else jump(); });
+
+function jump() {
+  if (player.jumps < 2) { player.vy = JUMP_FORCE - (player.jumps * 2); player.jumps++; spawnParticles(player.x+player.w/2, player.y+player.h, '#a0f', 5); }
+}
+
+function spawnParticles(x, y, col, n=8) {
+  for (let i=0;i<n;i++) {
+    const a = Math.random()*Math.PI*2, s = Math.random()*3+1;
+    particles.push({ x, y, vx:Math.cos(a)*s, vy:Math.sin(a)*s, life:30, col });
+  }
+}
+
+function spawnStuff() {
+  spawnTimer--;
+  if (spawnTimer > 0) return;
+  spawnTimer = Math.max(30, 90 - Math.floor(score/5));
+
+  const r = Math.random();
+  if (r < 0.5) {
+    // Floating platform with optional coin
+    const pw = 80 + Math.random()*60;
+    const py = GROUND - 80 - Math.random()*100;
+    platforms.push({ x:W+20, y:py, w:pw, h:14 });
+    if (Math.random()<0.7) coins.push({ x:W+20+pw/2, y:py-20, r:8, collected:false });
+  } else if (r < 0.75) {
+    // Gap (just don't add ground for a bit - handled by platform length)
+    platforms.push({ x:W+20, y:GROUND, w:60+Math.random()*80, h:60 });
+  } else {
+    // Enemy on ground
+    enemies.push({ x:W+20, y:GROUND-28, w:28, h:28, vy:0 });
+  }
+}
+
+function collideRect(a, b) {
+  return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y;
+}
+
+function loop() {
+  requestAnimationFrame(loop);
+  update();
+  draw();
+}
+
+function update() {
+  frame++;
+  if (state !== 'playing') return;
+
+  score += 0.02; if (score > best) best = score;
+  speed = SPEED + score * 0.015;
+
+  // Player physics
+  player.vy += GRAVITY;
+  player.y += player.vy;
+  player.onGround = false;
+
+  // Platform collisions
+  for (let p of platforms) {
+    if (collideRect(player, p) && player.vy >= 0 && player.y + player.h - player.vy <= p.y + 2) {
+      player.y = p.y - player.h;
+      player.vy = 0;
+      player.onGround = true;
+      player.jumps = 0;
+    }
+  }
+
+  // Fall off screen
+  if (player.y > H + 50) die();
+
+  // Move world
+  platforms.forEach(p => p.x -= speed);
+  coins.forEach(c => c.x -= speed);
+  enemies.forEach(e => { e.x -= speed; e.vy += GRAVITY; e.y += e.vy;
+    for (let p of platforms) {
+      if (collideRect(e, p) && e.vy >= 0 && e.y + e.h - e.vy <= p.y + 2) { e.y = p.y - e.h; e.vy = 0; }
+    }
+  });
+
+  // Coin collection
+  coins.forEach(c => {
+    if (!c.collected && Math.hypot(c.x-(player.x+player.w/2), c.y-(player.y+player.h/2)) < c.r+14) {
+      c.collected = true; score += 5; spawnParticles(c.x, c.y, '#ff0');
+    }
+  });
+
+  // Enemy collision
+  for (let e of enemies) {
+    if (collideRect(player, e)) {
+      // Stomp?
+      if (player.vy > 0 && player.y + player.h < e.y + 16) {
+        e.dead = true; score += 10; player.vy = JUMP_FORCE * 0.7;
+        spawnParticles(e.x+14, e.y+14, '#f44');
+      } else die();
+      break;
+    }
+  }
+
+  // Cleanup
+  platforms = platforms.filter(p => p.x + p.w > -100);
+  coins = coins.filter(c => c.x > -50);
+  enemies = enemies.filter(e => e.x > -50 && !e.dead);
+  particles = particles.filter(p => { p.x+=p.vx; p.y+=p.vy; p.vy+=0.1; p.life--; return p.life>0; });
+
+  // Keep ground going
+  const lastGround = platforms.filter(p=>p.y>GROUND-10).slice(-1)[0];
+  if (!lastGround || lastGround.x + lastGround.w < W + 200) {
+    platforms.push({x: lastGround ? lastGround.x+lastGround.w : W, y:GROUND, w:W+200, h:60});
+  }
+
+  spawnStuff();
+}
+
+function die() {
+  if (state !== 'playing') return;
+  state = 'dead';
+  spawnParticles(player.x+14, player.y+18, '#a0f', 20);
+}
+
+// Visual
+const stars = Array.from({length:60},()=>({ x:Math.random()*W, y:Math.random()*(H-100), s:Math.random()*2+0.5, b:Math.random() }));
+
+function draw() {
+  // Sky
+  const sg = ctx.createLinearGradient(0,0,0,H);
+  sg.addColorStop(0,'#0d0018'); sg.addColorStop(1,'#1a0030');
+  ctx.fillStyle = sg; ctx.fillRect(0,0,W,H);
+
+  // Stars
+  stars.forEach(s => {
+    ctx.globalAlpha = 0.3+0.4*Math.sin(frame*0.03+s.b*10);
+    ctx.fillStyle='#fff';
+    ctx.fillRect(s.x, s.y, s.s, s.s);
+  });
+  ctx.globalAlpha = 1;
+
+  // Moon
+  ctx.fillStyle = '#ffe8a0';
+  ctx.beginPath(); ctx.arc(W-80, 60, 30, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#1a0030';
+  ctx.beginPath(); ctx.arc(W-68, 52, 26, 0, Math.PI*2); ctx.fill();
+
+  // Particles
+  particles.forEach(p => {
+    ctx.globalAlpha = p.life/30;
+    ctx.fillStyle = p.col;
+    ctx.beginPath(); ctx.arc(p.x,p.y,3,0,Math.PI*2); ctx.fill();
+  });
+  ctx.globalAlpha=1;
+
+  // Platforms
+  platforms.forEach(p => {
+    if (p.y < GROUND-10) {
+      const pg = ctx.createLinearGradient(0,p.y,0,p.y+p.h);
+      pg.addColorStop(0,'#5a3'); pg.addColorStop(0.3,'#4a2'); pg.addColorStop(1,'#2a1');
+      ctx.fillStyle=pg;
+    } else {
+      ctx.fillStyle='#2a3a1a';
+    }
+    ctx.fillRect(p.x, p.y, p.w, p.h);
+    ctx.fillStyle='#5a4';
+    ctx.fillRect(p.x, p.y, p.w, 4);
+  });
+
+  // Coins
+  coins.forEach(c => {
+    if (c.collected) return;
+    ctx.fillStyle='#ff0';
+    ctx.beginPath(); ctx.arc(c.x, c.y, c.r, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle='#aa0';
+    ctx.beginPath(); ctx.arc(c.x, c.y, c.r*0.6, 0, Math.PI*2); ctx.fill();
+  });
+
+  // Enemies
+  enemies.forEach(e => {
+    ctx.fillStyle='#f44';
+    ctx.fillRect(e.x, e.y, e.w, e.h);
+    ctx.fillStyle='#c00';
+    ctx.fillRect(e.x+4, e.y+4, e.w-8, e.h/2);
+    ctx.fillStyle='#fff';
+    ctx.fillRect(e.x+4,e.y+6,5,5); ctx.fillRect(e.x+e.w-9,e.y+6,5,5);
+    ctx.fillStyle='#000';
+    ctx.fillRect(e.x+6,e.y+8,3,3); ctx.fillRect(e.x+e.w-7,e.y+8,3,3);
+  });
+
+  // Player
+  if (state !== 'dead') {
+    // Trail
+    ctx.globalAlpha=0.15; ctx.fillStyle=player.color;
+    ctx.fillRect(player.x-6, player.y+4, player.w, player.h);
+    ctx.globalAlpha=1;
+
+    const pg = ctx.createLinearGradient(player.x,player.y,player.x,player.y+player.h);
+    pg.addColorStop(0,'#c8f'); pg.addColorStop(1,'#60a');
+    ctx.fillStyle=pg;
+    ctx.fillRect(player.x, player.y, player.w, player.h);
+    // Eyes
+    ctx.fillStyle='#fff';
+    ctx.fillRect(player.x+6,player.y+8,7,7); ctx.fillRect(player.x+15,player.y+8,7,7);
+    ctx.fillStyle='#000';
+    ctx.fillRect(player.x+8,player.y+10,4,4); ctx.fillRect(player.x+17,player.y+10,4,4);
+    // Shine
+    ctx.fillStyle='rgba(255,255,255,0.3)';
+    ctx.fillRect(player.x+2,player.y+2,player.w-4,6);
+  }
+
+  // HUD
+  ctx.fillStyle='rgba(0,0,0,0.4)';
+  ctx.fillRect(0,0,W,36);
+  ctx.fillStyle='#fff'; ctx.font='14px Courier New'; ctx.textAlign='left';
+  ctx.fillText(`SCORE: ${Math.floor(score)}`, 12, 22);
+  ctx.fillStyle='#aaa';
+  ctx.fillText(`BEST: ${Math.floor(best)}`, 160, 22);
+  ctx.textAlign='right';
+  ctx.fillStyle='#a0f';
+  ctx.fillText('SPACE/CLICK = JUMP (x2)', W-10, 22);
+
+  // Overlay
+  ctx.textAlign='center';
+  if (state === 'idle') {
+    ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#fff'; ctx.font='bold 3rem Courier New';
+    ctx.shadowColor='#a0f'; ctx.shadowBlur=20;
+    ctx.fillText('RUNNER', W/2, H/2-30);
+    ctx.shadowBlur=0;
+    ctx.fillStyle='#aaa'; ctx.font='1rem Courier New';
+    ctx.fillText('CLICK OR PRESS SPACE TO START', W/2, H/2+20);
+  }
+  if (state === 'dead') {
+    ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#f44'; ctx.font='bold 2.5rem Courier New'; ctx.fillText('YOU DIED', W/2, H/2-30);
+    ctx.fillStyle='#fff'; ctx.font='1.2rem Courier New'; ctx.fillText(`Score: ${Math.floor(score)}`, W/2, H/2+10);
+    ctx.fillStyle='#888'; ctx.font='0.9rem Courier New'; ctx.fillText('CLICK TO RESTART', W/2, H/2+50);
+  }
+}
+
+init();
+loop();
+</script>
+</body>
+</html>

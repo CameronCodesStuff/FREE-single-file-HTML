@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Flappy</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#1a1a2e; display:flex; align-items:center; justify-content:center; height:100vh; font-family:'Courier New',monospace; }
+canvas { display:block; border-radius:4px; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+canvas.width = 360; canvas.height = 600;
+const W = canvas.width, H = canvas.height;
+
+const GRAVITY = 0.45, JUMP = -8, PIPE_W = 52, GAP = 155, PIPE_SPEED = 2.5;
+
+let bird, pipes, score, best, state, frames, particles;
+
+function init() {
+  bird = { x:80, y:H/2, vy:0, r:14, angle:0 };
+  pipes = []; score = 0; frames = 0; particles = [];
+  state = 'idle';
+  if (!best) best = 0;
+  render();
+}
+
+function flap() {
+  if (state === 'idle') { state = 'playing'; }
+  if (state === 'playing') {
+    bird.vy = JUMP;
+    for (let i=0;i<6;i++) particles.push({ x:bird.x, y:bird.y, vx:-Math.random()*3-1, vy:(Math.random()-0.5)*3, life:20, col:'#ffe' });
+  }
+  if (state === 'dead') init();
+}
+
+document.addEventListener('keydown', e => { if(e.code==='Space'||e.code==='ArrowUp') { e.preventDefault(); flap(); } });
+canvas.addEventListener('click', flap);
+canvas.addEventListener('touchstart', e => { e.preventDefault(); flap(); });
+
+function spawnPipe() {
+  const top = 80 + Math.random() * (H - GAP - 160);
+  pipes.push({ x: W, top, scored: false });
+}
+
+function loop() {
+  requestAnimationFrame(loop);
+  update();
+  render();
+}
+
+function update() {
+  if (state !== 'playing') return;
+  frames++;
+
+  bird.vy += GRAVITY;
+  bird.y += bird.vy;
+  bird.angle = Math.max(-25, Math.min(70, bird.vy * 4));
+
+  particles = particles.filter(p => {
+    p.x+=p.vx; p.y+=p.vy; p.life--; return p.life>0;
+  });
+
+  if (frames % 90 === 0) spawnPipe();
+
+  for (let p of pipes) {
+    p.x -= PIPE_SPEED;
+    if (!p.scored && p.x + PIPE_W < bird.x) { p.scored = true; score++; if(score>best)best=score; }
+    if (
+      bird.x+bird.r-4 > p.x && bird.x-bird.r+4 < p.x+PIPE_W &&
+      (bird.y-bird.r+4 < p.top || bird.y+bird.r-4 > p.top+GAP)
+    ) die();
+  }
+  pipes = pipes.filter(p => p.x > -PIPE_W);
+
+  if (bird.y - bird.r > H || bird.y + bird.r < 0) die();
+}
+
+function die() {
+  state = 'dead';
+  for (let i=0;i<20;i++) particles.push({ x:bird.x, y:bird.y, vx:(Math.random()-0.5)*8, vy:Math.random()*-8, life:50, col:['#f84','#ff0','#f44'][Math.floor(Math.random()*3)] });
+}
+
+// Sky gradient colors
+const skyTop = '#0d1b2a', skyBot = '#1b3a5c';
+const groundH = 50;
+
+function drawPipe(x, topH) {
+  const grad = ctx.createLinearGradient(x,0,x+PIPE_W,0);
+  grad.addColorStop(0,'#2d8c2d'); grad.addColorStop(0.4,'#4db84d'); grad.addColorStop(1,'#1a5c1a');
+  ctx.fillStyle = grad;
+  // Top pipe
+  ctx.fillRect(x, 0, PIPE_W, topH);
+  ctx.fillStyle='#3da83d'; ctx.fillRect(x-5, topH-20, PIPE_W+10, 20);
+  // Bottom pipe
+  const botY = topH + GAP;
+  ctx.fillStyle = grad;
+  ctx.fillRect(x, botY, PIPE_W, H - botY);
+  ctx.fillStyle='#3da83d'; ctx.fillRect(x-5, botY, PIPE_W+10, 20);
+}
+
+function render() {
+  // Sky
+  const g = ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0, skyTop); g.addColorStop(1, skyBot);
+  ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+
+  // Clouds (parallax)
+  ctx.fillStyle = 'rgba(255,255,255,0.06)';
+  [100,220,310].forEach((cx,i) => {
+    const ox = (frames*0.3*(i+1)*0.4) % (W+100) - 50;
+    ctx.beginPath(); ctx.ellipse(cx-ox, 80+i*60, 60, 25, 0, 0, Math.PI*2); ctx.fill();
+  });
+
+  pipes.forEach(p => drawPipe(p.x, p.top));
+
+  // Ground
+  const gg = ctx.createLinearGradient(0,H-groundH,0,H);
+  gg.addColorStop(0,'#4a3520'); gg.addColorStop(1,'#2a1f10');
+  ctx.fillStyle=gg; ctx.fillRect(0,H-groundH,W,groundH);
+  ctx.fillStyle='#6b5730';
+  for(let i=0;i<W;i+=30) ctx.fillRect(i+(frames%30),H-groundH,15,4);
+
+  // Particles
+  particles.forEach(p => {
+    ctx.globalAlpha = p.life/50;
+    ctx.fillStyle = p.col;
+    ctx.beginPath(); ctx.arc(p.x,p.y,4,0,Math.PI*2); ctx.fill();
+  });
+  ctx.globalAlpha = 1;
+
+  // Bird
+  if (state !== 'dead' || Math.floor(frames/5)%2===0) {
+    ctx.save();
+    ctx.translate(bird.x, bird.y);
+    ctx.rotate(bird.angle * Math.PI/180);
+    // Body
+    ctx.fillStyle = '#f8d000';
+    ctx.beginPath(); ctx.ellipse(0, 0, bird.r, bird.r-2, 0, 0, Math.PI*2); ctx.fill();
+    // Wing flap
+    const wingY = Math.sin(frames*0.3)*4;
+    ctx.fillStyle = '#e0b800';
+    ctx.beginPath(); ctx.ellipse(-4, wingY, 8, 5, -0.3, 0, Math.PI*2); ctx.fill();
+    // Eye
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(6,-3,5,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#000'; ctx.beginPath(); ctx.arc(7,-3,3,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(8,-4,1,0,Math.PI*2); ctx.fill();
+    // Beak
+    ctx.fillStyle='#f84'; ctx.beginPath(); ctx.moveTo(11,-1); ctx.lineTo(18,1); ctx.lineTo(11,3); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+
+  // Score
+  ctx.textAlign = 'center'; ctx.fillStyle = '#fff';
+  ctx.shadowColor = '#000'; ctx.shadowBlur = 6;
+  ctx.font = 'bold 38px Courier New';
+  if (state === 'playing') ctx.fillText(score, W/2, 70);
+  ctx.shadowBlur = 0;
+
+  // Overlays
+  if (state === 'idle') {
+    ctx.fillStyle = 'rgba(0,0,0,0.5)'; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#fff'; ctx.font='bold 42px Courier New'; ctx.fillText('FLAPPY', W/2, H/2-40);
+    ctx.font='16px Courier New'; ctx.fillStyle='#aaa'; ctx.fillText('TAP / SPACE TO FLAP', W/2, H/2+10);
+  }
+  if (state === 'dead') {
+    ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(0,0,W,H);
+    ctx.fillStyle='#f44'; ctx.font='bold 36px Courier New'; ctx.fillText('DEAD', W/2, H/2-50);
+    ctx.fillStyle='#fff'; ctx.font='24px Courier New'; ctx.fillText(`Score: ${score}`, W/2, H/2);
+    ctx.fillStyle='#aaa'; ctx.font='16px Courier New'; ctx.fillText(`Best: ${best}`, W/2, H/2+32);
+    ctx.fillText('TAP TO RETRY', W/2, H/2+70);
+  }
+}
+
+init();
+loop();
+</script>
+</body>
+</html>

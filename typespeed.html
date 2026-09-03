@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Type Speed</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#0d0d0d; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; font-family:'Courier New',monospace; color:#fff; gap:24px; }
+h1 { font-size:1.8rem; letter-spacing:8px; color:#f0a; }
+#quote-box { max-width:640px; width:90%; font-size:1.3rem; line-height:1.9; letter-spacing:0.05em; background:#111; border:1px solid #222; padding:28px; border-radius:8px; min-height:100px; }
+.char { color:#444; position:relative; }
+.char.correct { color:#4f4; }
+.char.wrong { color:#f44; background:rgba(255,60,60,0.15); border-radius:2px; }
+.char.cursor::after { content:''; position:absolute; left:0; bottom:0; width:2px; height:100%; background:#f0a; animation:blink 0.8s step-end infinite; }
+@keyframes blink { 50%{opacity:0} }
+#input { opacity:0; position:absolute; pointer-events:none; }
+#stats { display:flex; gap:32px; font-size:0.85rem; color:#555; letter-spacing:3px; }
+.stat { text-align:center; }
+.stat .val { font-size:1.8rem; color:#fff; display:block; margin-top:4px; }
+#wpm .val { color:#f0a; }
+#acc .val { color:#4f4; }
+#time .val { color:#4af; }
+#result { display:none; flex-direction:column; align-items:center; gap:16px; background:#111; border:1px solid #222; padding:30px 50px; border-radius:8px; text-align:center; }
+#result h2 { font-size:1.4rem; letter-spacing:4px; color:#f0a; }
+.big { font-size:3rem; color:#fff; }
+button { background:transparent; border:1px solid #f0a; color:#f0a; padding:10px 28px; font-family:'Courier New',monospace; font-size:0.9rem; letter-spacing:3px; cursor:pointer; border-radius:4px; }
+button:hover { background:#f0a; color:#000; }
+#difficulty { display:flex; gap:10px; }
+.diff-btn { border-color:#333; color:#555; font-size:0.75rem; padding:6px 14px; }
+.diff-btn.active,.diff-btn:hover { border-color:#f0a; color:#f0a; }
+#mode-label { font-size:0.7rem; color:#444; letter-spacing:3px; }
+</style>
+</head>
+<body>
+<h1>TYPESPEED</h1>
+<div id="difficulty">
+  <button class="diff-btn active" onclick="setMode('easy')">EASY</button>
+  <button class="diff-btn" onclick="setMode('med')">MEDIUM</button>
+  <button class="diff-btn" onclick="setMode('hard')">HARD</button>
+</div>
+<div id="stats">
+  <div class="stat" id="wpm"><span>WPM</span><span class="val" id="wpmVal">-</span></div>
+  <div class="stat" id="acc"><span>ACC</span><span class="val" id="accVal">-</span></div>
+  <div class="stat" id="time"><span>TIME</span><span class="val" id="timeVal">30s</span></div>
+</div>
+<div id="quote-box" onclick="focusInput()"></div>
+<input id="input" type="text" autocomplete="off">
+<div id="result">
+  <h2>RESULTS</h2>
+  <div class="big" id="finalWpm">0 WPM</div>
+  <div style="color:#4f4;font-size:1rem" id="finalAcc">100% accuracy</div>
+  <button onclick="newGame()">TRY AGAIN</button>
+</div>
+
+<script>
+const EASY_WORDS=['the','and','for','are','but','not','you','all','can','her','was','one','our','out','had','him','his','how','its','now','see','she','two','who','did','get','let','put','say','she','too','use','way','got','may','new','old','own','big','few','day','man','him','run','low','age','ago','air','ask','boy','car','cut','end','eye','far','law','may'];
+const MED_WORDS=['about','there','their','would','could','which','after','first','never','those','other','where','while','these','every','often','bring','light','night','right','place','small','world','great','young','being','found','still','going','every','since','under','again','until','along','might','large','house','point','river','taken'];
+const HARD_WORDS=['because','through','thought','another','without','between','whether','although','together','important','beautiful','different','throughout','sometimes','everything','something','somewhere','wonderful','technology','experience','understand','government','development','particularly'];
+
+let mode='easy', timeLeft=30, timerID, started=false;
+let currentText='', typed='', correct=0, total=0, wpm=0;
+
+function setMode(m) {
+  mode=m;
+  document.querySelectorAll('.diff-btn').forEach(b=>b.classList.remove('active'));
+  event.target.classList.add('active');
+  newGame();
+}
+
+function getWords() {
+  const pool = mode==='easy'?EASY_WORDS:mode==='med'?MED_WORDS:HARD_WORDS;
+  let words='', count=mode==='easy'?50:mode==='med'?40:30;
+  for(let i=0;i<count;i++) words+=(i?'  ':'')+pool[Math.floor(Math.random()*pool.length)];
+  return words;
+}
+
+function newGame() {
+  clearInterval(timerID);
+  started=false; typed=''; correct=0; total=0;
+  timeLeft=30;
+  currentText=getWords();
+  document.getElementById('result').style.display='none';
+  document.getElementById('quote-box').style.display='block';
+  document.getElementById('wpmVal').textContent='-';
+  document.getElementById('accVal').textContent='-';
+  document.getElementById('timeVal').textContent='30s';
+  document.getElementById('input').value='';
+  render(); focusInput();
+}
+
+function focusInput() { document.getElementById('input').focus(); }
+
+document.getElementById('input').addEventListener('input', e=>{
+  if(!started) { started=true; startTimer(); }
+  typed=e.target.value;
+  correct=0; total=0;
+  for(let i=0;i<typed.length;i++) {
+    total++;
+    if(typed[i]===currentText[i]) correct++;
+  }
+  updateLive(); render();
+  if(typed.length>=currentText.length) endGame();
+});
+
+function startTimer() {
+  timerID=setInterval(()=>{
+    timeLeft--;
+    document.getElementById('timeVal').textContent=timeLeft+'s';
+    updateLive();
+    if(timeLeft<=0) endGame();
+  },1000);
+}
+
+function updateLive() {
+  if(!started) return;
+  const elapsed=(30-timeLeft)||1;
+  const words=typed.trim().split(/\s+/).length;
+  wpm=Math.round((words/elapsed)*60);
+  const acc=total?Math.round((correct/total)*100):100;
+  document.getElementById('wpmVal').textContent=wpm;
+  document.getElementById('accVal').textContent=acc+'%';
+}
+
+function render() {
+  const box=document.getElementById('quote-box');
+  box.innerHTML='';
+  currentText.split('').forEach((ch,i)=>{
+    const span=document.createElement('span');
+    span.textContent=ch;
+    span.className='char';
+    if(i<typed.length) span.className+=' '+(typed[i]===ch?'correct':'wrong');
+    if(i===typed.length) span.className+=' cursor';
+    box.appendChild(span);
+  });
+}
+
+function endGame() {
+  clearInterval(timerID);
+  const acc=total?Math.round((correct/total)*100):100;
+  document.getElementById('quote-box').style.display='none';
+  const res=document.getElementById('result');
+  document.getElementById('finalWpm').textContent=wpm+' WPM';
+  document.getElementById('finalAcc').textContent=acc+'% accuracy';
+  const grade=wpm>80?'🔥 BLAZING FAST':wpm>60?'⚡ FAST':wpm>40?'👍 SOLID':'📝 KEEP PRACTISING';
+  res.querySelector('h2').textContent=grade;
+  res.style.display='flex';
+}
+
+newGame();
+</script>
+</body>
+</html>

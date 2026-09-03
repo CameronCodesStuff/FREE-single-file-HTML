@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>2048</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#1a1a1a; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; font-family:'Courier New',monospace; color:#fff; gap:20px; user-select:none; }
+#header { display:flex; align-items:center; justify-content:space-between; width:360px; }
+h1 { font-size:2.5rem; color:#f6a; letter-spacing:4px; }
+#scores { display:flex; gap:12px; }
+.score-box { background:#333; border-radius:4px; padding:8px 14px; text-align:center; min-width:70px; }
+.score-box .label { font-size:0.6rem; color:#888; letter-spacing:2px; }
+.score-box .val { font-size:1.2rem; color:#fff; }
+#grid { background:#2c2c2c; border-radius:8px; padding:10px; display:grid; grid-template-columns:repeat(4,80px); grid-template-rows:repeat(4,80px); gap:10px; }
+.cell { width:80px; height:80px; border-radius:4px; display:flex; align-items:center; justify-content:center; font-size:1.6rem; font-weight:bold; transition:all 0.1s ease; }
+.cell.new { animation:pop 0.15s ease; }
+@keyframes pop { 0%{transform:scale(0)} 60%{transform:scale(1.1)} 100%{transform:scale(1)} }
+#msg { position:fixed; inset:0; background:rgba(0,0,0,0.7); display:none; flex-direction:column; align-items:center; justify-content:center; gap:16px; }
+#msg h2 { font-size:2.5rem; letter-spacing:4px; }
+button { background:transparent; border:1px solid currentColor; padding:10px 28px; font-family:'Courier New',monospace; font-size:0.9rem; letter-spacing:3px; cursor:pointer; border-radius:4px; }
+#hint { color:#555; font-size:0.75rem; letter-spacing:2px; }
+</style>
+</head>
+<body>
+<div id="header">
+  <h1>2048</h1>
+  <div id="scores">
+    <div class="score-box"><div class="label">SCORE</div><div class="val" id="score">0</div></div>
+    <div class="score-box"><div class="label">BEST</div><div class="val" id="best">0</div></div>
+  </div>
+</div>
+<div id="grid"></div>
+<div id="hint">USE ARROW KEYS OR SWIPE</div>
+<button onclick="newGame()" style="color:#888;margin-top:-10px">NEW GAME</button>
+<div id="msg">
+  <h2 id="msgText"></h2>
+  <button onclick="newGame()" id="msgBtn">PLAY AGAIN</button>
+</div>
+
+<script>
+const COLORS = {
+  0:'#3a3a3a',2:'#4a4040',4:'#5a3030',8:'#7a2020',16:'#9a1010',
+  32:'#b03030',64:'#c04040',128:'#8040b0',256:'#6040c0',
+  512:'#4050d0',1024:'#40a0e0',2048:'#40e0a0',
+};
+const TEXT_COLORS = {
+  0:'#555',2:'#aaa',4:'#bbb',8:'#ddd',16:'#eee',32:'#fff',
+  64:'#fff',128:'#fff',256:'#fff',512:'#fff',1024:'#fff',2048:'#fff',
+};
+
+let board, score, best = 0, won = false;
+const grid = document.getElementById('grid');
+
+function newGame() {
+  board = Array.from({length:4},()=>Array(4).fill(0));
+  score = 0; won = false;
+  document.getElementById('msg').style.display = 'none';
+  addTile(); addTile(); render();
+}
+
+function addTile() {
+  const empty = [];
+  board.forEach((row,r)=>row.forEach((v,c)=>{ if(!v) empty.push([r,c]); }));
+  if (!empty.length) return false;
+  const [r,c] = empty[Math.floor(Math.random()*empty.length)];
+  board[r][c] = Math.random() < 0.9 ? 2 : 4;
+  return [r,c];
+}
+
+function slide(row) {
+  let arr = row.filter(v=>v), merged=false, pts=0;
+  for (let i=0;i<arr.length-1;i++) {
+    if (arr[i]===arr[i+1] && !merged) {
+      arr[i]*=2; pts+=arr[i]; arr.splice(i+1,1); merged=true;
+    } else merged=false;
+  }
+  while(arr.length<4) arr.push(0);
+  return {row:arr, pts};
+}
+
+function move(dir) {
+  let moved=false; let totalPts=0;
+  const prev = JSON.stringify(board);
+  if (dir==='left' || dir==='right') {
+    board = board.map(row => {
+      if(dir==='right') row=row.slice().reverse();
+      const {row:r,pts} = slide(row); totalPts+=pts;
+      return dir==='right' ? r.reverse() : r;
+    });
+  } else {
+    for (let c=0;c<4;c++) {
+      let col = board.map(r=>r[c]);
+      if(dir==='down') col=col.reverse();
+      const {row:r,pts} = slide(col); totalPts+=pts;
+      if(dir==='down') r.reverse();
+      board.forEach((row,i)=>row[c]=r[i]);
+    }
+  }
+  moved = JSON.stringify(board) !== prev;
+  if (moved) { score+=totalPts; if(score>best){best=score;} const pos=addTile(); render(pos); checkEnd(); }
+}
+
+function checkEnd() {
+  if (!won && board.some(r=>r.some(v=>v===2048))) {
+    won = true;
+    show('YOU WIN! 🎉','#4ef', 'KEEP GOING');
+    document.getElementById('msgBtn').onclick = () => { document.getElementById('msg').style.display='none'; };
+    return;
+  }
+  for(let r=0;r<4;r++) for(let c=0;c<4;c++) {
+    if(!board[r][c]) return;
+    if(c<3&&board[r][c]===board[r][c+1]) return;
+    if(r<3&&board[r][c]===board[r+1][c]) return;
+  }
+  show('GAME OVER','#f44', 'RETRY');
+}
+
+function show(text, color, btn) {
+  document.getElementById('msgText').textContent = text;
+  document.getElementById('msgText').style.color = color;
+  document.getElementById('msgBtn').textContent = btn;
+  document.getElementById('msgBtn').onclick = newGame;
+  document.getElementById('msg').style.display = 'flex';
+}
+
+function render(newPos) {
+  grid.innerHTML = '';
+  board.forEach((row,r)=>row.forEach((v,c)=>{
+    const cell = document.createElement('div');
+    cell.className = 'cell' + (newPos&&newPos[0]===r&&newPos[1]===c?' new':'');
+    cell.style.background = COLORS[Math.min(v,2048)] || '#40f0a0';
+    cell.style.color = TEXT_COLORS[Math.min(v,2048)] || '#fff';
+    if(v) { cell.textContent = v; if(v>=1000) cell.style.fontSize='1.1rem'; }
+    grid.appendChild(cell);
+  }));
+  document.getElementById('score').textContent = score;
+  document.getElementById('best').textContent = best;
+}
+
+// Keys
+document.addEventListener('keydown', e => {
+  const map = { ArrowLeft:'left', ArrowRight:'right', ArrowUp:'up', ArrowDown:'down' };
+  if (map[e.key]) { e.preventDefault(); move(map[e.key]); }
+});
+
+// Swipe
+let tx, ty;
+document.addEventListener('touchstart', e => { tx=e.touches[0].clientX; ty=e.touches[0].clientY; });
+document.addEventListener('touchend', e => {
+  const dx=e.changedTouches[0].clientX-tx, dy=e.changedTouches[0].clientY-ty;
+  if(Math.abs(dx)>Math.abs(dy)) move(dx>0?'right':'left');
+  else move(dy>0?'down':'up');
+});
+
+newGame();
+</script>
+</body>
+</html>

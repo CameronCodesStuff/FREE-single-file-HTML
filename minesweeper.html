@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Minesweeper</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#1a1a2e; display:flex; flex-direction:column; align-items:center; justify-content:center; min-height:100vh; font-family:'Courier New',monospace; color:#fff; gap:16px; }
+h1 { font-size:2rem; letter-spacing:6px; color:#8af; }
+#controls { display:flex; gap:12px; }
+button { background:transparent; border:1px solid #555; color:#888; padding:6px 16px; font-family:'Courier New',monospace; font-size:0.8rem; letter-spacing:2px; cursor:pointer; border-radius:3px; }
+button.active, button:hover { border-color:#8af; color:#8af; }
+#status { font-size:0.85rem; color:#666; letter-spacing:3px; min-height:20px; }
+#hud { display:flex; gap:30px; font-size:0.85rem; color:#888; letter-spacing:2px; }
+#board { border:1px solid #333; cursor:pointer; }
+#timer { color:#fa8; }
+</style>
+</head>
+<body>
+<h1>💣 MINES</h1>
+<div id="controls">
+  <button class="active" onclick="setDiff('easy',9,9,10)">EASY</button>
+  <button onclick="setDiff('med',16,16,40)">MEDIUM</button>
+  <button onclick="setDiff('hard',16,30,99)">HARD</button>
+</div>
+<div id="hud">
+  <span>💣 <span id="mcount">10</span></span>
+  <span id="status">RIGHT-CLICK TO FLAG</span>
+  <span id="timer">⏱ 0s</span>
+</div>
+<canvas id="board"></canvas>
+<button onclick="newGame()" style="color:#666;border-color:#333">NEW GAME</button>
+
+<script>
+const canvas = document.getElementById('board');
+const ctx = canvas.getContext('2d');
+const SZ = 28;
+
+let ROWS=9, COLS=9, MINES=10;
+let board, revealed, flagged, started, over, won, startTime, timerID, firstClick;
+
+const NUM_COLORS = ['','#4af','#4f4','#f44','#44f','#f84','#4ff','#f4f','#888'];
+
+function setDiff(name,r,c,m) {
+  document.querySelectorAll('#controls button').forEach(b=>b.classList.remove('active'));
+  event.target.classList.add('active');
+  ROWS=r; COLS=c; MINES=m; newGame();
+}
+
+function newGame() {
+  clearInterval(timerID);
+  board=Array.from({length:ROWS},()=>Array(COLS).fill(0));
+  revealed=Array.from({length:ROWS},()=>Array(COLS).fill(false));
+  flagged=Array.from({length:ROWS},()=>Array(COLS).fill(false));
+  started=false; over=false; won=false; firstClick=true;
+  canvas.width=COLS*SZ; canvas.height=ROWS*SZ;
+  document.getElementById('mcount').textContent=MINES;
+  document.getElementById('status').textContent='RIGHT-CLICK TO FLAG';
+  document.getElementById('timer').textContent='⏱ 0s';
+  draw();
+}
+
+function placeMines(avoidR, avoidC) {
+  let placed=0;
+  while(placed<MINES){
+    const r=Math.floor(Math.random()*ROWS),c=Math.floor(Math.random()*COLS);
+    if(!board[r][c]&&!(Math.abs(r-avoidR)<=1&&Math.abs(c-avoidC)<=1)){
+      board[r][c]=-1; placed++;
+    }
+  }
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) {
+    if(board[r][c]!==-1) {
+      let count=0;
+      for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++){
+        const nr=r+dr,nc=c+dc;
+        if(nr>=0&&nr<ROWS&&nc>=0&&nc<COLS&&board[nr][nc]===-1) count++;
+      }
+      board[r][c]=count;
+    }
+  }
+}
+
+function reveal(r,c) {
+  if(r<0||r>=ROWS||c<0||c>=COLS||revealed[r][c]||flagged[r][c]) return;
+  revealed[r][c]=true;
+  if(board[r][c]===0) for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++) reveal(r+dr,c+dc);
+}
+
+canvas.addEventListener('click', e=>{
+  if(over) return;
+  const rect=canvas.getBoundingClientRect();
+  const c=Math.floor((e.clientX-rect.left)/SZ), r=Math.floor((e.clientY-rect.top)/SZ);
+  if(r<0||r>=ROWS||c<0||c>=COLS||flagged[r][c]) return;
+
+  if(firstClick){ firstClick=false; placeMines(r,c); startTimer(); }
+
+  if(board[r][c]===-1){ explode(r,c); return; }
+  reveal(r,c);
+  checkWin(); draw();
+});
+
+canvas.addEventListener('contextmenu', e=>{
+  e.preventDefault();
+  if(over) return;
+  const rect=canvas.getBoundingClientRect();
+  const c=Math.floor((e.clientX-rect.left)/SZ), r=Math.floor((e.clientY-rect.top)/SZ);
+  if(revealed[r][c]) return;
+  flagged[r][c]=!flagged[r][c];
+  const flags=flagged.flat().filter(Boolean).length;
+  document.getElementById('mcount').textContent=MINES-flags;
+  draw();
+});
+
+function startTimer() {
+  startTime=Date.now();
+  timerID=setInterval(()=>{ document.getElementById('timer').textContent='⏱ '+Math.floor((Date.now()-startTime)/1000)+'s'; },1000);
+}
+
+function explode(br,bc) {
+  over=true; clearInterval(timerID);
+  revealed[br][bc]=true;
+  board.forEach((row,r)=>row.forEach((v,c)=>{ if(v===-1) revealed[r][c]=true; }));
+  document.getElementById('status').textContent='💥 BOOM!';
+  draw(); // show all mines then red out
+  ctx.fillStyle='rgba(255,0,0,0.3)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  // Red highlight the clicked mine
+  ctx.fillStyle='#f44';
+  ctx.fillRect(bc*SZ,br*SZ,SZ,SZ);
+  ctx.fillStyle='#fff'; ctx.font='bold 16px Arial'; ctx.textAlign='center';
+  ctx.fillText('💣',bc*SZ+SZ/2,br*SZ+SZ/2+6);
+}
+
+function checkWin() {
+  const unrevealed=revealed.flat().filter(v=>!v).length;
+  if(unrevealed===MINES){
+    won=true; over=true; clearInterval(timerID);
+    const t=Math.floor((Date.now()-startTime)/1000);
+    document.getElementById('status').textContent=`✅ CLEARED IN ${t}s!`;
+    board.forEach((row,r)=>row.forEach((v,c)=>{ if(v===-1) flagged[r][c]=true; }));
+  }
+}
+
+function draw() {
+  ctx.fillStyle='#111'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) {
+    const x=c*SZ, y=r*SZ;
+    if(revealed[r][c]) {
+      ctx.fillStyle='#1e1e2e';
+      ctx.fillRect(x+1,y+1,SZ-2,SZ-2);
+      if(board[r][c]===-1) {
+        ctx.fillStyle='#f44'; ctx.fillRect(x+1,y+1,SZ-2,SZ-2);
+        ctx.font='16px Arial'; ctx.textAlign='center';
+        ctx.fillText('💣',x+SZ/2,y+SZ/2+5);
+      } else if(board[r][c]>0) {
+        ctx.fillStyle=NUM_COLORS[board[r][c]];
+        ctx.font=`bold 14px Courier New`; ctx.textAlign='center';
+        ctx.fillText(board[r][c],x+SZ/2,y+SZ/2+5);
+      }
+    } else {
+      // Unrevealed
+      const g=ctx.createLinearGradient(x,y,x+SZ,y+SZ);
+      g.addColorStop(0,'#2a2a4a'); g.addColorStop(1,'#1e1e3e');
+      ctx.fillStyle=g; ctx.fillRect(x+1,y+1,SZ-2,SZ-2);
+      ctx.fillStyle='rgba(255,255,255,0.05)';
+      ctx.fillRect(x+1,y+1,SZ-2,3); ctx.fillRect(x+1,y+1,3,SZ-2);
+      if(flagged[r][c]) {
+        ctx.font='16px Arial'; ctx.textAlign='center';
+        ctx.fillText('🚩',x+SZ/2,y+SZ/2+5);
+      }
+    }
+    // Grid lines
+    ctx.strokeStyle='#0a0a1a'; ctx.lineWidth=1;
+    ctx.strokeRect(x,y,SZ,SZ);
+  }
+}
+
+newGame();
+</script>
+</body>
+</html>
