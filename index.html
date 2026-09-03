@@ -84,23 +84,65 @@
             display: flex;
             align-items: center;
             gap: 0.75rem;
+            flex: 1;
+            min-width: 0;
         }
 
         .file-icon {
             font-size: 1.2rem;
+            flex-shrink: 0;
         }
 
         .file-name {
             font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .file-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-shrink: 0;
+            margin-left: 1rem;
         }
 
         .file-action {
             font-size: 0.85rem;
             color: var(--text-secondary);
+            white-space: nowrap;
         }
 
         .file-item:hover .file-action {
             color: var(--accent-color);
+        }
+
+        .btn-download {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            font-size: 0.78rem;
+            padding: 0.3rem 0.65rem;
+            border-radius: 5px;
+            border: 1px solid var(--border-color);
+            background-color: #21262d;
+            color: var(--text-secondary);
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+        }
+
+        .btn-download:hover {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+            background-color: #1c2128;
+        }
+
+        /* Stop the download button hover/click from also triggering the row hover */
+        .btn-download:focus {
+            outline: none;
         }
     </style>
 </head>
@@ -118,7 +160,10 @@
                     <span class="file-icon">📄</span>
                     <span class="file-name">README.md</span>
                 </div>
-                <span class="file-action">View &rarr;</span>
+                <div class="file-actions">
+                    <a href="README.md" download class="btn-download" onclick="event.stopPropagation()">⬇ Download</a>
+                    <span class="file-action">View &rarr;</span>
+                </div>
             </a>
 
             <a href="album-cover-generator.html" class="file-item">
@@ -126,7 +171,10 @@
                     <span class="file-icon">🌐</span>
                     <span class="file-name">album-cover-generator.html</span>
                 </div>
-                <span class="file-action">Launch &rarr;</span>
+                <div class="file-actions">
+                    <a href="album-cover-generator.html" download class="btn-download" onclick="event.stopPropagation()">⬇ Download</a>
+                    <span class="file-action">Launch &rarr;</span>
+                </div>
             </a>
 
             <a href="apex.html" class="file-item">
@@ -134,7 +182,10 @@
                     <span class="file-icon">🌐</span>
                     <span class="file-name">apex.html</span>
                 </div>
-                <span class="file-action">Launch &rarr;</span>
+                <div class="file-actions">
+                    <a href="apex.html" download class="btn-download" onclick="event.stopPropagation()">⬇ Download</a>
+                    <span class="file-action">Launch &rarr;</span>
+                </div>
             </a>
 
             <a href="apex-drift-27-2.html" class="file-item">
@@ -142,7 +193,10 @@
                     <span class="file-icon">🌐</span>
                     <span class="file-name">apex-drift-27-2.html</span>
                 </div>
-                <span class="file-action">Launch &rarr;</span>
+                <div class="file-actions">
+                    <a href="apex-drift-27-2.html" download class="btn-download" onclick="event.stopPropagation()">⬇ Download</a>
+                    <span class="file-action">Launch &rarr;</span>
+                </div>
             </a>
 
             <a href="carvault.html" class="file-item">
@@ -150,7 +204,10 @@
                     <span class="file-icon">🌐</span>
                     <span class="file-name">carvault.html</span>
                 </div>
-                <span class="file-action">Launch &rarr;</span>
+                <div class="file-actions">
+                    <a href="carvault.html" download class="btn-download" onclick="event.stopPropagation()">⬇ Download</a>
+                    <span class="file-action">Launch &rarr;</span>
+                </div>
             </a>
 
             <a href="cave.html" class="file-item">
@@ -158,7 +215,10 @@
                     <span class="file-icon">🌐</span>
                     <span class="file-name">cave.html</span>
                 </div>
-                <span class="file-action">Launch &rarr;</span>
+                <div class="file-actions">
+                    <a href="cave.html" download class="btn-download" onclick="event.stopPropagation()">⬇ Download</a>
+                    <span class="file-action">Launch &rarr;</span>
+                </div>
             </a>
 
             <a href="colabomb.html" class="file-item">
@@ -166,7 +226,10 @@
                     <span class="file-icon">🌐</span>
                     <span class="file-name">colabomb.html</span>
                 </div>
-                <span class="file-action">Launch &rarr;</span>
+                <div class="file-actions">
+                    <a href="colabomb.html" download class="btn-download" onclick="event.stopPropagation()">⬇ Download</a>
+                    <span class="file-action">Launch &rarr;</span>
+                </div>
             </a>
 
             <a href="corporate-bullshit-generator.html" class="file-item">
@@ -174,7 +237,10 @@
                     <span class="file-icon">🌐</span>
                     <span class="file-name">corporate-bullshit-generator.html</span>
                 </div>
-                <span class="file-action">Launch &rarr;</span>
+                <div class="file-actions">
+                    <a href="corporate-bullshit-generator.html" download class="btn-download" onclick="event.stopPropagation()">⬇ Download</a>
+                    <span class="file-action">Launch &rarr;</span>
+                </div>
             </a>
 
             <a href="digital-graffiti-wall.html" class="file-item">
@@ -182,7 +248,10 @@
                     <span class="file-icon">🌐</span>
                     <span class="file-name">digital-graffiti-wall.html</span>
                 </div>
-                <span class="file-action">Launch &rarr;</span>
+                <div class="file-actions">
+                    <a href="digital-graffiti-wall.html" download class="btn-download" onclick="event.stopPropagation()">⬇ Download</a>
+                    <span class="file-action">Launch &rarr;</span>
+                </div>
             </a>
 
             <a href="doom.html" class="file-item">
@@ -190,7 +259,10 @@
                     <span class="file-icon">🌐</span>
                     <span class="file-name">doom.html</span>
                 </div>
-                <span class="file-action">Launch &rarr;</span>
+                <div class="file-actions">
+                    <a href="doom.html" download class="btn-download" onclick="event.stopPropagation()">⬇ Download</a>
+                    <span class="file-action">Launch &rarr;</span>
+                </div>
             </a>
 
             <a href="driftwood.html" class="file-item">
@@ -198,7 +270,10 @@
                     <span class="file-icon">🌐</span>
                     <span class="file-name">driftwood.html</span>
                 </div>
-                <span class="file-action">Launch &rarr;</span>
+                <div class="file-actions">
+                    <a href="driftwood.html" download class="btn-download" onclick="event.stopPropagation()">⬇ Download</a>
+                    <span class="file-action">Launch &rarr;</span>
+                </div>
             </a>
 
             <a href="fake-dating-app.html" class="file-item">
@@ -206,7 +281,10 @@
                     <span class="file-icon">🌐</span>
                     <span class="file-name">fake-dating-app.html</span>
                 </div>
-                <span class="file-action">Launch &rarr;</span>
+                <div class="file-actions">
+                    <a href="fake-dating-app.html" download class="btn-download" onclick="event.stopPropagation()">⬇ Download</a>
+                    <span class="file-action">Launch &rarr;</span>
+                </div>
             </a>
 
             <a href="fake-government.html" class="file-item">
@@ -214,7 +292,10 @@
                     <span class="file-icon">🌐</span>
                     <span class="file-name">fake-government.html</span>
                 </div>
-                <span class="file-action">Launch &rarr;</span>
+                <div class="file-actions">
+                    <a href="fake-government.html" download class="btn-download" onclick="event.stopPropagation()">⬇ Download</a>
+                    <span class="file-action">Launch &rarr;</span>
+                </div>
             </a>
 
             <a href="fake-operating-system.html" class="file-item">
@@ -222,7 +303,43 @@
                     <span class="file-icon">🌐</span>
                     <span class="file-name">fake-operating-system.html</span>
                 </div>
-                <span class="file-action">Launch &rarr;</span>
+                <div class="file-actions">
+                    <a href="fake-operating-system.html" download class="btn-download" onclick="event.stopPropagation()">⬇ Download</a>
+                    <span class="file-action">Launch &rarr;</span>
+                </div>
+            </a>
+
+            <a href="golf.html" class="file-item">
+                <div class="file-info">
+                    <span class="file-icon">🌐</span>
+                    <span class="file-name">golf.html</span>
+                </div>
+                <div class="file-actions">
+                    <a href="golf.html" download class="btn-download" onclick="event.stopPropagation()">⬇ Download</a>
+                    <span class="file-action">Launch &rarr;</span>
+                </div>
+            </a>
+
+            <a href="infinite-pointless-website.html" class="file-item">
+                <div class="file-info">
+                    <span class="file-icon">🌐</span>
+                    <span class="file-name">infinite-pointless-website.html</span>
+                </div>
+                <div class="file-actions">
+                    <a href="infinite-pointless-website.html" download class="btn-download" onclick="event.stopPropagation()">⬇ Download</a>
+                    <span class="file-action">Launch &rarr;</span>
+                </div>
+            </a>
+
+            <a href="js13k.html" class="file-item">
+                <div class="file-info">
+                    <span class="file-icon">🌐</span>
+                    <span class="file-name">js13k.html</span>
+                </div>
+                <div class="file-actions">
+                    <a href="js13k.html" download class="btn-download" onclick="event.stopPropagation()">⬇ Download</a>
+                    <span class="file-action">Launch &rarr;</span>
+                </div>
             </a>
 
             <a href="judgement-machine.html" class="file-item">
@@ -230,7 +347,32 @@
                     <span class="file-icon">🌐</span>
                     <span class="file-name">judgement-machine.html</span>
                 </div>
-                <span class="file-action">Launch &rarr;</span>
+                <div class="file-actions">
+                    <a href="judgement-machine.html" download class="btn-download" onclick="event.stopPropagation()">⬇ Download</a>
+                    <span class="file-action">Launch &rarr;</span>
+                </div>
+            </a>
+
+            <a href="konnekt.html" class="file-item">
+                <div class="file-info">
+                    <span class="file-icon">🌐</span>
+                    <span class="file-name">konnekt.html</span>
+                </div>
+                <div class="file-actions">
+                    <a href="konnekt.html" download class="btn-download" onclick="event.stopPropagation()">⬇ Download</a>
+                    <span class="file-action">Launch &rarr;</span>
+                </div>
+            </a>
+
+            <a href="lolcow.html" class="file-item">
+                <div class="file-info">
+                    <span class="file-icon">🌐</span>
+                    <span class="file-name">lolcow.html</span>
+                </div>
+                <div class="file-actions">
+                    <a href="lolcow.html" download class="btn-download" onclick="event.stopPropagation()">⬇ Download</a>
+                    <span class="file-action">Launch &rarr;</span>
+                </div>
             </a>
 
             <a href="mystery-website.html" class="file-item">
@@ -238,7 +380,10 @@
                     <span class="file-icon">🌐</span>
                     <span class="file-name">mystery-website.html</span>
                 </div>
-                <span class="file-action">Launch &rarr;</span>
+                <div class="file-actions">
+                    <a href="mystery-website.html" download class="btn-download" onclick="event.stopPropagation()">⬇ Download</a>
+                    <span class="file-action">Launch &rarr;</span>
+                </div>
             </a>
 
             <a href="neonmetro.html" class="file-item">
@@ -246,7 +391,10 @@
                     <span class="file-icon">🌐</span>
                     <span class="file-name">neonmetro.html</span>
                 </div>
-                <span class="file-action">Launch &rarr;</span>
+                <div class="file-actions">
+                    <a href="neonmetro.html" download class="btn-download" onclick="event.stopPropagation()">⬇ Download</a>
+                    <span class="file-action">Launch &rarr;</span>
+                </div>
             </a>
 
             <a href="outrun360.html" class="file-item">
@@ -254,7 +402,10 @@
                     <span class="file-icon">🌐</span>
                     <span class="file-name">outrun360.html</span>
                 </div>
-                <span class="file-action">Launch &rarr;</span>
+                <div class="file-actions">
+                    <a href="outrun360.html" download class="btn-download" onclick="event.stopPropagation()">⬇ Download</a>
+                    <span class="file-action">Launch &rarr;</span>
+                </div>
             </a>
 
             <a href="roadsidefarm.html" class="file-item">
@@ -262,7 +413,10 @@
                     <span class="file-icon">🌐</span>
                     <span class="file-name">roadsidefarm.html</span>
                 </div>
-                <span class="file-action">Launch &rarr;</span>
+                <div class="file-actions">
+                    <a href="roadsidefarm.html" download class="btn-download" onclick="event.stopPropagation()">⬇ Download</a>
+                    <span class="file-action">Launch &rarr;</span>
+                </div>
             </a>
 
             <a href="shooter.html" class="file-item">
@@ -270,7 +424,32 @@
                     <span class="file-icon">🌐</span>
                     <span class="file-name">shooter.html</span>
                 </div>
-                <span class="file-action">Launch &rarr;</span>
+                <div class="file-actions">
+                    <a href="shooter.html" download class="btn-download" onclick="event.stopPropagation()">⬇ Download</a>
+                    <span class="file-action">Launch &rarr;</span>
+                </div>
+            </a>
+
+            <a href="slots.html" class="file-item">
+                <div class="file-info">
+                    <span class="file-icon">🌐</span>
+                    <span class="file-name">slots.html</span>
+                </div>
+                <div class="file-actions">
+                    <a href="slots.html" download class="btn-download" onclick="event.stopPropagation()">⬇ Download</a>
+                    <span class="file-action">Launch &rarr;</span>
+                </div>
+            </a>
+
+            <a href="snake.html" class="file-item">
+                <div class="file-info">
+                    <span class="file-icon">🌐</span>
+                    <span class="file-name">snake.html</span>
+                </div>
+                <div class="file-actions">
+                    <a href="snake.html" download class="btn-download" onclick="event.stopPropagation()">⬇ Download</a>
+                    <span class="file-action">Launch &rarr;</span>
+                </div>
             </a>
 
             <a href="Stormbrella.html" class="file-item">
@@ -278,7 +457,10 @@
                     <span class="file-icon">🌐</span>
                     <span class="file-name">Stormbrella.html</span>
                 </div>
-                <span class="file-action">Launch &rarr;</span>
+                <div class="file-actions">
+                    <a href="Stormbrella.html" download class="btn-download" onclick="event.stopPropagation()">⬇ Download</a>
+                    <span class="file-action">Launch &rarr;</span>
+                </div>
             </a>
 
             <a href="TheJudgementMachine.html" class="file-item">
@@ -286,7 +468,10 @@
                     <span class="file-icon">🌐</span>
                     <span class="file-name">TheJudgementMachine.html</span>
                 </div>
-                <span class="file-action">Launch &rarr;</span>
+                <div class="file-actions">
+                    <a href="TheJudgementMachine.html" download class="btn-download" onclick="event.stopPropagation()">⬇ Download</a>
+                    <span class="file-action">Launch &rarr;</span>
+                </div>
             </a>
 
             <a href="unknown-persons-phone.html" class="file-item">
@@ -294,7 +479,10 @@
                     <span class="file-icon">🌐</span>
                     <span class="file-name">unknown-persons-phone.html</span>
                 </div>
-                <span class="file-action">Launch &rarr;</span>
+                <div class="file-actions">
+                    <a href="unknown-persons-phone.html" download class="btn-download" onclick="event.stopPropagation()">⬇ Download</a>
+                    <span class="file-action">Launch &rarr;</span>
+                </div>
             </a>
 
             <a href="voxelcraft.html" class="file-item">
@@ -302,7 +490,10 @@
                     <span class="file-icon">🌐</span>
                     <span class="file-name">voxelcraft.html</span>
                 </div>
-                <span class="file-action">Launch &rarr;</span>
+                <div class="file-actions">
+                    <a href="voxelcraft.html" download class="btn-download" onclick="event.stopPropagation()">⬇ Download</a>
+                    <span class="file-action">Launch &rarr;</span>
+                </div>
             </a>
 
             <a href="website-that-knows-too-much.html" class="file-item">
@@ -310,7 +501,32 @@
                     <span class="file-icon">🌐</span>
                     <span class="file-name">website-that-knows-too-much.html</span>
                 </div>
-                <span class="file-action">Launch &rarr;</span>
+                <div class="file-actions">
+                    <a href="website-that-knows-too-much.html" download class="btn-download" onclick="event.stopPropagation()">⬇ Download</a>
+                    <span class="file-action">Launch &rarr;</span>
+                </div>
+            </a>
+
+            <a href="wishly.html" class="file-item">
+                <div class="file-info">
+                    <span class="file-icon">🌐</span>
+                    <span class="file-name">wishly.html</span>
+                </div>
+                <div class="file-actions">
+                    <a href="wishly.html" download class="btn-download" onclick="event.stopPropagation()">⬇ Download</a>
+                    <span class="file-action">Launch &rarr;</span>
+                </div>
+            </a>
+
+            <a href="xx142-b2-exe.html" class="file-item">
+                <div class="file-info">
+                    <span class="file-icon">🌐</span>
+                    <span class="file-name">xx142-b2-exe.html</span>
+                </div>
+                <div class="file-actions">
+                    <a href="xx142-b2-exe.html" download class="btn-download" onclick="event.stopPropagation()">⬇ Download</a>
+                    <span class="file-action">Launch &rarr;</span>
+                </div>
             </a>
 
         </div>
