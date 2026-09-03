@@ -1,0 +1,1447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Infinite Pointless Website™</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #090910;
+    --surface: rgba(255,255,255,0.04);
+    --border: rgba(255,255,255,0.08);
+    --text: #c8c8d8;
+    --dim: #5a5a72;
+    --accent: #7b6cff;
+    --accent2: #2dd4bf;
+    --accent3: #f472b6;
+    --danger: #fb923c;
+    --glow: rgba(123,108,255,0.15);
+    --radius: 16px;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; }
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font);
+    min-height: 100vh;
+    overflow-x: hidden;
+    line-height: 1.6;
+  }
+
+  /* NOISE OVERLAY */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    opacity: 0.4;
+  }
+
+  /* GRID */
+  .container { max-width: 720px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+  /* HEADER */
+  #site-header {
+    padding: 48px 0 24px;
+    text-align: center;
+    position: relative;
+  }
+
+  #logo {
+    display: inline-block;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  #logo-text {
+    font-size: clamp(1.4rem, 4vw, 2rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  #logo-sub {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--dim);
+    letter-spacing: 0.15em;
+    font-weight: 400;
+    -webkit-text-fill-color: var(--dim);
+    margin-top: 2px;
+  }
+
+  /* HERO */
+  #hero {
+    padding: 48px 0 32px;
+    text-align: center;
+  }
+
+  #hero h1 {
+    font-size: clamp(1.8rem, 6vw, 3.2rem);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    line-height: 1.1;
+    margin-bottom: 16px;
+    color: #e8e8f0;
+  }
+
+  #hero p {
+    color: var(--dim);
+    font-size: 1rem;
+    max-width: 480px;
+    margin: 0 auto 32px;
+  }
+
+  /* CARDS */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    margin: 24px 0;
+    backdrop-filter: blur(12px);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.4;
+  }
+
+  .card-title {
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    color: var(--dim);
+    margin-bottom: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+  }
+
+  .card-body {
+    font-size: 1.05rem;
+    color: #d0d0e0;
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+
+  /* BUTTONS */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 22px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: rgba(255,255,255,0.06);
+    color: var(--text);
+    font-family: var(--font);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn:hover {
+    background: rgba(255,255,255,0.1);
+    border-color: rgba(255,255,255,0.16);
+    transform: translateY(-1px);
+  }
+
+  .btn:active { transform: translateY(0); }
+
+  .btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  .btn-primary:hover { background: #6b5ce7; border-color: #6b5ce7; }
+
+  .btn-danger {
+    border-color: rgba(251,146,60,0.3);
+    color: var(--danger);
+  }
+
+  .btn-danger:hover { background: rgba(251,146,60,0.1); }
+
+  .btn-small {
+    padding: 6px 14px;
+    font-size: 0.8rem;
+    border-radius: 8px;
+  }
+
+  /* PROGRESS BAR */
+  .progress-wrap {
+    background: rgba(255,255,255,0.06);
+    border-radius: 100px;
+    height: 6px;
+    overflow: hidden;
+    margin: 12px 0;
+  }
+
+  .progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 100px;
+    transition: width 0.4s ease;
+  }
+
+  /* TOAST */
+  #toast-container {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+    pointer-events: none;
+  }
+
+  .toast {
+    background: rgba(20,20,35,0.95);
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    padding: 10px 20px;
+    font-size: 0.82rem;
+    color: var(--text);
+    backdrop-filter: blur(12px);
+    animation: toastIn 0.3s ease, toastOut 0.4s ease 2.2s forwards;
+    white-space: nowrap;
+  }
+
+  @keyframes toastIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes toastOut { to { opacity: 0; transform: translateY(-10px); } }
+
+  /* STATS PANEL */
+  #stats-panel {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 500;
+    background: rgba(9,9,16,0.9);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    font-size: 0.72rem;
+    backdrop-filter: blur(20px);
+    min-width: 190px;
+    transition: transform 0.3s ease;
+  }
+
+  #stats-panel.collapsed { transform: translateX(calc(100% + 20px)); }
+
+  #stats-toggle {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 600;
+    background: rgba(9,9,16,0.9);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 0.72rem;
+    cursor: pointer;
+    color: var(--dim);
+    backdrop-filter: blur(12px);
+    transition: all 0.2s;
+    display: none;
+  }
+
+  #stats-toggle:hover { color: var(--text); }
+
+  .stats-title {
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    color: var(--dim);
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .stats-close {
+    cursor: pointer;
+    padding: 2px 6px;
+    border-radius: 4px;
+    transition: background 0.2s;
+  }
+
+  .stats-close:hover { background: rgba(255,255,255,0.08); }
+
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+  }
+
+  .stat-row:last-child { border-bottom: none; }
+
+  .stat-label { color: var(--dim); }
+
+  .stat-val {
+    color: var(--accent2);
+    font-family: var(--mono);
+    font-weight: 600;
+  }
+
+  /* MUTE BTN */
+  #mute-btn {
+    position: fixed;
+    bottom: 24px;
+    right: 16px;
+    z-index: 500;
+    background: rgba(9,9,16,0.9);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-size: 0.78rem;
+    cursor: pointer;
+    color: var(--dim);
+    backdrop-filter: blur(12px);
+    transition: all 0.2s;
+  }
+
+  #mute-btn:hover { color: var(--text); border-color: rgba(255,255,255,0.16); }
+
+  /* SECTION DIVIDER */
+  .section-divider {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin: 40px 0 0;
+    color: var(--dim);
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+  }
+
+  .section-divider::before, .section-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* POINTLESS SECTION */
+  .ps {
+    margin: 0 0 8px;
+    position: relative;
+  }
+
+  .ps-num {
+    font-size: 0.65rem;
+    color: var(--dim);
+    font-family: var(--mono);
+    margin-bottom: 6px;
+  }
+
+  /* MOVING BUTTON */
+  .btn-moving {
+    position: relative;
+    transition: left 0.15s ease, top 0.15s ease;
+    display: inline-block;
+  }
+
+  /* LOADING SPINNER */
+  .spinner {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255,255,255,0.1);
+    border-top-color: var(--accent2);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ALERT */
+  .fake-alert {
+    background: rgba(123,108,255,0.08);
+    border: 1px solid rgba(123,108,255,0.25);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin: 12px 0;
+    font-size: 0.88rem;
+  }
+
+  .fake-alert-title { color: var(--accent); font-weight: 600; margin-bottom: 4px; font-size: 0.82rem; }
+
+  /* KONAMI OVERLAY */
+  #konami-overlay {
+    position: fixed; inset: 0; z-index: 9999;
+    background: rgba(0,0,0,0.95);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+    text-align: center;
+    padding: 24px;
+  }
+
+  #konami-overlay.show { display: flex; }
+
+  #konami-overlay h2 { font-size: 2rem; color: var(--accent); }
+
+  /* SECRET BTN */
+  #secret-btn {
+    position: fixed;
+    bottom: 24px;
+    left: 16px;
+    z-index: 500;
+    background: transparent;
+    border: 1px dashed rgba(255,255,255,0.08);
+    border-radius: 10px;
+    padding: 8px 14px;
+    font-size: 0.7rem;
+    cursor: pointer;
+    color: rgba(255,255,255,0.12);
+    transition: all 0.3s;
+  }
+
+  #secret-btn:hover { color: var(--danger); border-color: rgba(251,146,60,0.4); background: rgba(251,146,60,0.05); }
+
+  /* IDLE MODAL */
+  #idle-modal {
+    position: fixed; inset: 0; z-index: 800;
+    background: rgba(0,0,0,0.85);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    backdrop-filter: blur(8px);
+  }
+
+  #idle-modal.show { display: flex; }
+
+  #idle-modal .modal-box {
+    background: rgba(14,14,24,0.98);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 36px;
+    text-align: center;
+    max-width: 380px;
+    width: 100%;
+  }
+
+  #idle-modal h2 { font-size: 1.4rem; margin-bottom: 12px; color: #e0e0f0; }
+  #idle-modal p { color: var(--dim); font-size: 0.9rem; margin-bottom: 24px; }
+
+  /* GLITCH TEXT */
+  @keyframes glitch {
+    0%, 100% { clip-path: inset(0 0 95% 0); transform: translate(-2px); }
+    20% { clip-path: inset(30% 0 50% 0); transform: translate(2px); }
+    40% { clip-path: inset(60% 0 20% 0); transform: translate(-1px); }
+    60% { clip-path: inset(80% 0 5% 0); transform: translate(1px); }
+    80% { clip-path: inset(10% 0 80% 0); transform: translate(-2px); }
+  }
+
+  .glitch-wrap { position: relative; display: inline-block; }
+  .glitch-wrap::after {
+    content: attr(data-text);
+    position: absolute; inset: 0;
+    color: var(--accent3);
+    animation: glitch 3s infinite;
+    opacity: 0.6;
+    pointer-events: none;
+  }
+
+  /* VISITED indicator */
+  .visited-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    background: var(--accent2);
+    border-radius: 50%;
+    margin-left: 8px;
+    opacity: 0;
+    transition: opacity 0.4s;
+    vertical-align: middle;
+  }
+
+  .visited-dot.show { opacity: 1; }
+
+  /* FOOTER SPACE */
+  #footer-space { height: 120px; }
+
+  /* GLOW EFFECT ON HOVER */
+  .card:hover { box-shadow: 0 0 40px var(--glow); }
+
+  /* RESPONSIVE */
+  @media (max-width: 600px) {
+    #stats-panel { display: none; }
+    #stats-toggle { display: block; }
+  }
+
+  /* BLINK */
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* TAB AWAY MSG */
+  #tab-msg {
+    font-size: 0.78rem;
+    color: var(--accent3);
+    text-align: center;
+    padding: 8px;
+    opacity: 0;
+    transition: opacity 0.5s;
+  }
+
+  #tab-msg.show { opacity: 1; }
+
+  /* NUMBER TICKER */
+  .ticker { font-family: var(--mono); color: var(--accent2); }
+
+  .level-bar-wrap { margin: 8px 0; }
+  .level-label { font-size: 0.72rem; color: var(--dim); display: flex; justify-content: space-between; margin-bottom: 4px; }
+</style>
+</head>
+<body>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container" aria-live="polite"></div>
+
+<!-- STATS PANEL -->
+<div id="stats-panel" role="complementary" aria-label="Pointless Statistics">
+  <div class="stats-title">
+    LIVE METRICS
+    <span class="stats-close" id="stats-close-btn" title="Collapse" aria-label="Collapse stats">×</span>
+  </div>
+  <div class="stat-row"><span class="stat-label">Time Wasted</span><span class="stat-val" id="stat-time">0s</span></div>
+  <div class="stat-row"><span class="stat-label">Nothing Done</span><span class="stat-val" id="stat-nothing">0</span></div>
+  <div class="stat-row"><span class="stat-label">Buttons Pressed</span><span class="stat-val" id="stat-buttons">0</span></div>
+  <div class="stat-row"><span class="stat-label">Sections Visited</span><span class="stat-val" id="stat-sections">0</span></div>
+  <div class="stat-row"><span class="stat-label">Fake Productivity</span><span class="stat-val" id="stat-prod">0%</span></div>
+  <div class="stat-row"><span class="stat-label">Existential Damage</span><span class="stat-val" id="stat-exist">LOW</span></div>
+  <div class="stat-row"><span class="stat-label">Uselessness Level</span><span class="stat-val" id="stat-useless">1</span></div>
+</div>
+<button id="stats-toggle" aria-label="Show stats">📊</button>
+
+<!-- MUTE BUTTON -->
+<button id="mute-btn" aria-label="Toggle sound">🔇 Sound off</button>
+
+<!-- SECRET BUTTON -->
+<button id="secret-btn" aria-label="Secret">Absolutely Do Not Press</button>
+
+<!-- IDLE MODAL -->
+<div id="idle-modal" role="dialog" aria-modal="true" aria-labelledby="idle-title">
+  <div class="modal-box">
+    <h2 id="idle-title">Are you still doing this?</h2>
+    <p id="idle-msg">You have been sitting here for a while. Nothing has changed. The universe does not care. Neither does this website. But here you are.</p>
+    <button class="btn btn-primary" id="idle-dismiss">Yes, unfortunately.</button>
+  </div>
+</div>
+
+<!-- KONAMI OVERLAY -->
+<div id="konami-overlay" role="dialog" aria-modal="true">
+  <h2>⬆⬆⬇⬇⬅➡⬅➡BA</h2>
+  <p style="color:var(--dim);max-width:360px;">You entered the Konami Code. In most games this gives you 30 extra lives. Here it does absolutely nothing. Congratulations on your muscle memory.</p>
+  <button class="btn btn-primary" id="konami-close">Acknowledge My Failure</button>
+</div>
+
+<!-- MAIN -->
+<div class="container">
+
+  <!-- HEADER -->
+  <header id="site-header">
+    <div id="logo" role="banner" title="Click me 10 times" tabindex="0" aria-label="Site logo">
+      <div id="logo-text">POINTLESS™</div>
+      <span id="logo-sub">OFFICIAL INFINITE WEBSITE • EST. NOW</span>
+    </div>
+    <div id="tab-msg">You left. We noticed. Not much else happened.</div>
+  </header>
+
+  <!-- HERO -->
+  <section id="hero">
+    <h1 class="glitch-wrap" data-text="Welcome to Nothing">Welcome to Nothing</h1>
+    <p id="hero-sub">A website of zero utility, infinite scroll, and questionable life choices. <span id="hero-visit-count">You are the first person to wonder why.</span></p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+      <button class="btn btn-primary" id="do-nothing-btn" aria-label="Do Nothing">Do Nothing</button>
+      <button class="btn" id="continue-btn" aria-label="Continue">Continue</button>
+    </div>
+    <div style="margin-top:20px;font-size:0.78rem;color:var(--dim);">
+      <span class="spinner"></span>&nbsp;Loading something important since
+      <span id="load-since" style="font-family:var(--mono);color:var(--accent2);"></span>
+    </div>
+  </section>
+
+  <!-- PROGRESS SECTION -->
+  <div class="card">
+    <div class="card-title">Global Progress Tracker</div>
+    <div class="card-body" id="progress-label">Approaching completion…</div>
+    <div class="progress-wrap" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Progress">
+      <div class="progress-bar" id="main-progress" style="width:0%"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:var(--dim);margin-top:6px;">
+      <span>start</span>
+      <span id="progress-pct">0%</span>
+      <span>something</span>
+    </div>
+  </div>
+
+  <!-- ACCOMPLISHMENTS -->
+  <div class="card">
+    <div class="card-title">Personal Achievement Centre</div>
+    <div class="card-body">Things Accomplished: <span class="ticker" id="accomplishments">0</span></div>
+    <button class="btn" id="accomplish-btn" aria-label="Accomplish Nothing">Accomplish Nothing</button>
+    <div id="accomplish-feedback" style="margin-top:12px;font-size:0.82rem;color:var(--dim);min-height:20px;"></div>
+  </div>
+
+  <!-- SLIGHTLY WORSE -->
+  <div class="card">
+    <div class="card-title">Interface Optimisation Bureau</div>
+    <div class="card-body" id="worse-body">This page is currently at peak quality.</div>
+    <button class="btn btn-danger" id="worse-btn" aria-label="Make It Slightly Worse">Make It Slightly Worse</button>
+  </div>
+
+  <!-- INFINITE SECTIONS MOUNT POINT -->
+  <div id="sections-mount"></div>
+
+  <div id="footer-space"></div>
+</div>
+
+<!-- SCRIPT -->
+<script>
+(function() {
+  'use strict';
+
+  // ─── STATE ───────────────────────────────────────────────────────────────
+  const S = {
+    startTime: Date.now(),
+    buttons: 0,
+    nothing: 0,
+    accomplishments: 0,
+    sectionsGenerated: 0,
+    sectionsVisited: 0,
+    logoClicks: 0,
+    interactionCount: 0,
+    muted: true,
+    audioCtx: null,
+    progressVal: 0,
+    progressDir: 1,
+    tabAway: false,
+    lastActivity: Date.now(),
+    idleShown: false,
+    continueCount: 0,
+    worseFactor: 0,
+    konamiIdx: 0,
+    secretPresses: 0,
+    existentialLevel: 0, // 0=low 1=med 2=high 3=critical
+    visitedSections: new Set(),
+    loadStart: new Date(),
+  };
+
+  const KONAMI = [38,38,40,40,37,39,37,39,66,65];
+
+  // ─── MESSAGES ────────────────────────────────────────────────────────────
+  const TOASTS = [
+    "Nothing happened.", "You are now 3% more informed.", "This could have been an email.",
+    "Please wait for absolutely nothing.", "Calculating…", "Calculation complete. Result: 0.",
+    "You have reached the end. Just kidding.", "There is no reward.", "Keep going.",
+    "Your effort has been logged and ignored.", "Processing your request… nope.",
+    "A notification occurred.", "Something almost happened.",
+    "Error: no error occurred.", "Task complete. Task was nothing.",
+    "Your patience is noted. It will not be rewarded.", "Buffering… success: buffer is empty.",
+    "You are still here.", "This is fine.", "Warning: everything is fine.",
+    "Syncing data… data was already synced.", "Update available: nothing changed.",
+    "Checkpoint reached. Checkpoint was pointless.",
+    "You have unlocked: the next few seconds of your life.",
+  ];
+
+  const AWARE_TOASTS = [
+    "You've been here a while.", "We're not judging. Actually, we are.",
+    "Most people left by now.", "There's genuinely nothing at the end of this.",
+    "The website has noticed you.", "Perhaps close the tab?",
+    "We're impressed, honestly.", "At some point this becomes a commitment.",
+    "You are the longest-staying visitor. That is not a compliment.",
+    "Whatever you're avoiding, it's still there.",
+    "This site will outlast your interest. Or will it?",
+  ];
+
+  const SECTION_NAMES = [
+    "Pointless Department", "Official Nothing Archive", "Button Testing Facility",
+    "Department of Moving Slightly to the Left", "Advanced Waiting Simulator",
+    "Certified Uselessness Calculator", "Important Rectangle", "Void Management Office",
+    "Bureau of Unfinished Tasks", "Ministry of Inconsequential Events",
+    "Institute for Doing Literally Nothing", "Progress Tracking Division",
+    "Department of Fictional Urgency", "Centre for Unnecessary Clicks",
+    "The Office That Should Not Exist", "Scrolling Endurance Lab",
+    "Existential Technology Group", "Committee for No Good Reason",
+    "Headquarters for Nothing at All", "The Infinite Waiting Room",
+    "Division of Strategic Pointlessness", "Archive of Uneventful Events",
+    "Foundation for Continued Nothing", "Quality Assurance (Everything is Fine)",
+    "Peak Performance Prevention Unit",
+  ];
+
+  const ACCOMPLISH_MSGS = [
+    "You did it. Nothing.", "A thing was done. It wasn't meaningful.",
+    "Registered. Filed. Shredded.", "The achievement was acknowledged by no one.",
+    "Success logged to /dev/null.", "Points awarded: 0.",
+    "You've accomplished something. That something was this.",
+    "The universe has been informed. It doesn't care.",
+    "Certified: you pressed a button.",
+  ];
+
+  // ─── AUDIO ───────────────────────────────────────────────────────────────
+  function initAudio() {
+    if (!S.audioCtx) S.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+
+  function beep(freq = 440, dur = 0.05, vol = 0.04, type = 'sine') {
+    if (S.muted) return;
+    initAudio();
+    const o = S.audioCtx.createOscillator();
+    const g = S.audioCtx.createGain();
+    o.connect(g); g.connect(S.audioCtx.destination);
+    o.type = type; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol, S.audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, S.audioCtx.currentTime + dur);
+    o.start(); o.stop(S.audioCtx.currentTime + dur);
+  }
+
+  // ─── TOAST ───────────────────────────────────────────────────────────────
+  function toast(msg) {
+    const el = document.createElement('div');
+    el.className = 'toast';
+    el.textContent = msg;
+    document.getElementById('toast-container').appendChild(el);
+    setTimeout(() => el.remove(), 2800);
+    beep(600 + Math.random() * 200, 0.04);
+  }
+
+  function randomToast() {
+    const pool = S.interactionCount > 30 ? [...TOASTS, ...AWARE_TOASTS] : TOASTS;
+    toast(pool[Math.floor(Math.random() * pool.length)]);
+  }
+
+  // ─── STATS UPDATE ─────────────────────────────────────────────────────────
+  function formatTime(ms) {
+    const s = Math.floor(ms / 1000);
+    if (s < 60) return s + 's';
+    const m = Math.floor(s / 60), ss = s % 60;
+    if (m < 60) return m + 'm ' + ss + 's';
+    return Math.floor(m/60) + 'h ' + (m%60) + 'm';
+  }
+
+  function existLabel(n) {
+    return ['LOW','MODERATE','HIGH','CRITICAL','EXISTENTIAL'][Math.min(n, 4)];
+  }
+
+  function updateStats() {
+    const elapsed = Date.now() - S.startTime;
+    document.getElementById('stat-time').textContent = formatTime(elapsed);
+    document.getElementById('stat-nothing').textContent = S.nothing;
+    document.getElementById('stat-buttons').textContent = S.buttons;
+    document.getElementById('stat-sections').textContent = S.sectionsVisited;
+    const fakeProd = Math.min(99, Math.floor(S.buttons * 0.7 + S.accomplishments * 1.2));
+    document.getElementById('stat-prod').textContent = fakeProd + '%';
+    S.existentialLevel = Math.floor(elapsed / 60000); // escalates every minute
+    document.getElementById('stat-exist').textContent = existLabel(S.existentialLevel);
+    document.getElementById('stat-useless').textContent = Math.floor(elapsed / 30000) + 1;
+  }
+
+  // ─── PROGRESS BAR ─────────────────────────────────────────────────────────
+  const progressMessages = [
+    "Approaching completion…", "Nearly there…", "Almost done…",
+    "Just a little more…", "So close…", "Imminent…",
+    "Any second now…", "100% is a lie.", "Resetting for your convenience.",
+  ];
+
+  function animateProgress() {
+    S.progressVal += S.progressDir * (0.3 + Math.random() * 0.5);
+    if (S.progressVal >= 99.5) {
+      S.progressDir = -1;
+      S.progressVal = 99.5;
+      const lbl = document.getElementById('progress-label');
+      lbl.textContent = "Almost complete. Just kidding.";
+      setTimeout(() => {
+        S.progressVal = 0;
+        S.progressDir = 1;
+        lbl.textContent = progressMessages[Math.floor(Math.random() * progressMessages.length)];
+        toast("Progress reset. You're welcome.");
+        beep(200, 0.12, 0.05, 'sawtooth');
+      }, 1200);
+    }
+    const bar = document.getElementById('main-progress');
+    const pct = Math.max(0, Math.min(100, S.progressVal));
+    bar.style.width = pct + '%';
+    bar.parentElement.setAttribute('aria-valuenow', Math.round(pct));
+    document.getElementById('progress-pct').textContent = Math.round(pct) + '%';
+    requestAnimationFrame(animateProgress);
+  }
+
+  // ─── LOGO CLICKS ─────────────────────────────────────────────────────────
+  const logoNames = [
+    'POINTLESS™', 'STILL HERE™', 'PERSISTENT™', 'DEDICATED™',
+    'CONCERNING™', 'DEEPLY CONCERNING™', 'PLEASE STOP™',
+    'FINE WHATEVER™', 'YOU WIN NOTHING™', '∞™',
+  ];
+
+  function handleLogoClick() {
+    S.logoClicks++;
+    beep(440 + S.logoClicks * 30, 0.04);
+    if (S.logoClicks < 10) {
+      toast(`Logo clicked ${S.logoClicks}/10 time${S.logoClicks > 1 ? 's' : ''}. Keep going for a reason.`);
+    } else {
+      const idx = Math.min(S.logoClicks - 10, logoNames.length - 1);
+      document.getElementById('logo-text').textContent = logoNames[idx];
+      toast('The logo has evolved.');
+    }
+  }
+
+  // ─── DO NOTHING ──────────────────────────────────────────────────────────
+  document.getElementById('do-nothing-btn').addEventListener('click', function() {
+    S.buttons++; S.nothing++; S.interactionCount++;
+    S.lastActivity = Date.now();
+    randomToast();
+    document.getElementById('stat-nothing').textContent = S.nothing;
+    beep(330, 0.06);
+    this.textContent = Math.random() < 0.05 ? 'Do Something? Nope.' : 'Do Nothing';
+  });
+
+  // ─── CONTINUE CHAIN ──────────────────────────────────────────────────────
+  document.getElementById('continue-btn').addEventListener('click', function() {
+    S.buttons++; S.continueCount++; S.interactionCount++;
+    S.lastActivity = Date.now();
+    beep(500 + S.continueCount * 20, 0.05);
+    const msgs = ["Continue", "Continue Again", "Keep Going", "And Again",
+      "Seriously?", "Ok.", "...", "Sure.", "Why Not.", "Fine.",
+      "You're still clicking this?", "→", "→→", "Onward, I guess.", "Continue (final)",
+    ];
+    this.textContent = msgs[Math.min(S.continueCount, msgs.length - 1)];
+    if (S.continueCount === 5) toast("You've pressed Continue 5 times. Nothing continues.");
+    if (S.continueCount === 10) toast("10 continues. The journey was pointless.");
+    if (S.continueCount % 15 === 0) toast("You have achieved: continuing.");
+  });
+
+  // ─── ACCOMPLISH NOTHING ──────────────────────────────────────────────────
+  document.getElementById('accomplish-btn').addEventListener('click', function() {
+    S.buttons++; S.accomplishments++; S.interactionCount++;
+    S.lastActivity = Date.now();
+    beep(660, 0.08, 0.05, 'triangle');
+    document.getElementById('accomplishments').textContent = S.accomplishments;
+    const fb = document.getElementById('accomplish-feedback');
+    fb.textContent = ACCOMPLISH_MSGS[Math.floor(Math.random() * ACCOMPLISH_MSGS.length)];
+    setTimeout(() => { fb.textContent = ''; }, 2500);
+  });
+
+  // ─── MAKE IT WORSE ───────────────────────────────────────────────────────
+  const worseMsgs = [
+    "This page is currently at peak quality.",
+    "It's slightly worse now.",
+    "Getting worse. Almost imperceptibly.",
+    "Significantly more suboptimal.",
+    "Worse, yet somehow still functional.",
+    "Approaching maximum badness.",
+    "The quality has left the building.",
+    "What even is this anymore.",
+    "It's art now. Terrible art.",
+    "This is genuinely getting concerning.",
+    "Beyond worse. Post-worse.",
+  ];
+
+  document.getElementById('worse-btn').addEventListener('click', function() {
+    S.buttons++; S.worseFactor++; S.interactionCount++;
+    S.lastActivity = Date.now();
+    beep(220, 0.07, 0.05, 'sawtooth');
+    const idx = Math.min(S.worseFactor, worseMsgs.length - 1);
+    document.getElementById('worse-body').textContent = worseMsgs[idx];
+    // Actually apply minor cosmetic degradation
+    if (S.worseFactor % 3 === 0) {
+      document.body.style.filter = `hue-rotate(${S.worseFactor * 2}deg)`;
+    }
+    toast("It's slightly worse now.");
+  });
+
+  // ─── MUTE ────────────────────────────────────────────────────────────────
+  document.getElementById('mute-btn').addEventListener('click', function() {
+    S.muted = !S.muted;
+    this.textContent = S.muted ? '🔇 Sound off' : '🔊 Sound on';
+    if (!S.muted) { initAudio(); beep(440, 0.1); }
+  });
+
+  // ─── STATS PANEL ─────────────────────────────────────────────────────────
+  document.getElementById('stats-close-btn').addEventListener('click', () => {
+    document.getElementById('stats-panel').classList.add('collapsed');
+    document.getElementById('stats-toggle').style.display = 'block';
+  });
+
+  document.getElementById('stats-toggle').addEventListener('click', () => {
+    document.getElementById('stats-panel').classList.remove('collapsed');
+    document.getElementById('stats-toggle').style.display = 'none';
+  });
+
+  // ─── SECRET BUTTON ───────────────────────────────────────────────────────
+  document.getElementById('secret-btn').addEventListener('click', function() {
+    S.secretPresses++; S.buttons++; S.interactionCount++;
+    S.lastActivity = Date.now();
+    beep(880, 0.12, 0.08, 'square');
+    generateSection(true); // force-generate a ridiculous section
+    toast("You were warned. Another section has spawned.");
+    if (S.secretPresses === 3) toast("You've now pressed it 3 times. The website has noticed.");
+    if (S.secretPresses === 7) toast("Seven times. Are you okay?");
+  });
+
+  // ─── LOGO ────────────────────────────────────────────────────────────────
+  const logo = document.getElementById('logo');
+  logo.addEventListener('click', handleLogoClick);
+  logo.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') handleLogoClick(); });
+
+  // ─── KONAMI CODE ─────────────────────────────────────────────────────────
+  document.addEventListener('keydown', (e) => {
+    if (e.keyCode === KONAMI[S.konamiIdx]) {
+      S.konamiIdx++;
+      if (S.konamiIdx === KONAMI.length) {
+        S.konamiIdx = 0;
+        document.getElementById('konami-overlay').classList.add('show');
+        beep(262, 0.5, 0.06, 'square');
+      }
+    } else { S.konamiIdx = 0; }
+  });
+
+  document.getElementById('konami-close').addEventListener('click', () => {
+    document.getElementById('konami-overlay').classList.remove('show');
+  });
+
+  // ─── IDLE DETECTION ──────────────────────────────────────────────────────
+  function checkIdle() {
+    const IDLE_THRESHOLD = 45000; // 45s
+    const now = Date.now();
+    if (!S.idleShown && (now - S.lastActivity) > IDLE_THRESHOLD) {
+      S.idleShown = true;
+      const modal = document.getElementById('idle-modal');
+      modal.classList.add('show');
+      modal.querySelector('#idle-msg').textContent = S.existentialLevel > 2
+        ? "You have been here long enough that this has become part of your identity. The website does not judge. It cannot. It is a website."
+        : "You have been sitting here for a while. Nothing has changed. The universe does not care. Neither does this website. But here you are.";
+    }
+  }
+
+  document.getElementById('idle-dismiss').addEventListener('click', () => {
+    document.getElementById('idle-modal').classList.remove('show');
+    S.idleShown = false;
+    S.lastActivity = Date.now();
+    toast("You're still here. Noted.");
+  });
+
+  document.addEventListener('mousemove', () => { S.lastActivity = Date.now(); });
+  document.addEventListener('keydown', () => { S.lastActivity = Date.now(); });
+  document.addEventListener('scroll', () => { S.lastActivity = Date.now(); });
+
+  // ─── TAB VISIBILITY ──────────────────────────────────────────────────────
+  document.addEventListener('visibilitychange', () => {
+    const msg = document.getElementById('tab-msg');
+    if (document.hidden) {
+      S.tabAway = true;
+    } else if (S.tabAway) {
+      S.tabAway = false;
+      msg.classList.add('show');
+      const tabMsgs = [
+        "You left. We noticed. Not much else happened.",
+        "The website waited. As websites do.",
+        "You returned. Nothing new to report.",
+        "Welcome back. The nothing is still here.",
+        "We kept the nothing warm for you.",
+      ];
+      msg.textContent = tabMsgs[Math.floor(Math.random() * tabMsgs.length)];
+      setTimeout(() => msg.classList.remove('show'), 4000);
+    }
+  });
+
+  // ─── LOAD SINCE ──────────────────────────────────────────────────────────
+  document.getElementById('load-since').textContent = S.loadStart.toLocaleTimeString();
+
+  // ─── LOAD SINCE COUNTER ──────────────────────────────────────────────────
+  function updateLoadTime() {
+    const el = document.getElementById('load-since');
+    const elapsed = Math.floor((Date.now() - S.startTime) / 1000);
+    el.textContent = S.loadStart.toLocaleTimeString() + ' (' + formatTime(elapsed * 1000) + ' ago)';
+  }
+
+  // ─── SECTION GENERATORS ──────────────────────────────────────────────────
+  const sectionGenerators = [
+    genDoNothingSection,
+    genMovingButtonSection,
+    genCountdownSection,
+    genFakeAlertSection,
+    genCalculatingSection,
+    genSliderSection,
+    genLevelSection,
+    genCertificateSection,
+    genWaitingSection,
+    genMessageSection,
+    genMultiButtonSection,
+    genTypewriterSection,
+    genFormSection,
+    genAchievementSection,
+    genPhilosophySection,
+  ];
+
+  function generateSection(forceSecret) {
+    S.sectionsGenerated++;
+    const n = S.sectionsGenerated;
+    const mount = document.getElementById('sections-mount');
+
+    const divider = document.createElement('div');
+    divider.className = 'section-divider';
+    const nameIdx = (n - 1) % SECTION_NAMES.length;
+    divider.textContent = `${SECTION_NAMES[nameIdx]} #${1000 + n}`;
+    mount.appendChild(divider);
+
+    const ps = document.createElement('div');
+    ps.className = 'ps';
+    ps.id = 'section-' + n;
+
+    const genFn = forceSecret
+      ? sectionGenerators[Math.floor(Math.random() * sectionGenerators.length)]
+      : sectionGenerators[(n - 1) % sectionGenerators.length];
+
+    genFn(ps, n);
+    mount.appendChild(ps);
+
+    // Visited tracking via IntersectionObserver
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(e => {
+        if (e.isIntersecting && !S.visitedSections.has(n)) {
+          S.visitedSections.add(n);
+          S.sectionsVisited++;
+        }
+      });
+    }, { threshold: 0.3 });
+    obs.observe(ps);
+
+    // Prune old sections for perf (keep last 20)
+    const sections = mount.querySelectorAll('.ps');
+    if (sections.length > 25) {
+      sections[0].previousElementSibling?.remove(); // divider
+      sections[0].remove();
+    }
+  }
+
+  // ─── SECTION TYPES ───────────────────────────────────────────────────────
+
+  function makeCard(parent, title, body) {
+    const c = document.createElement('div'); c.className = 'card';
+    if (title) {
+      const t = document.createElement('div'); t.className = 'card-title'; t.textContent = title; c.appendChild(t);
+    }
+    if (body) {
+      const b = document.createElement('div'); b.className = 'card-body'; b.textContent = body; c.appendChild(b);
+    }
+    parent.appendChild(c);
+    return c;
+  }
+
+  function makeBtn(text, cls, onClick) {
+    const b = document.createElement('button');
+    b.className = 'btn ' + (cls || '');
+    b.textContent = text;
+    b.addEventListener('click', () => { S.buttons++; S.interactionCount++; S.lastActivity = Date.now(); onClick(b); });
+    return b;
+  }
+
+  function genDoNothingSection(parent, n) {
+    const c = makeCard(parent, 'Nothing-Doing Interface', 'Press the button. Something will not happen.');
+    let count = 0;
+    const feedback = document.createElement('div');
+    feedback.style.cssText = 'margin-top:8px;font-size:0.8rem;color:var(--dim);min-height:18px;';
+    const btn = makeBtn('Do Nothing Again', '', (b) => {
+      count++;
+      beep(400 + count * 15, 0.05);
+      const msgs = ["Nothing happened.", "Still nothing.", "Confirmed: nothing.",
+        "Triple nothing.", "You've done nothing " + count + " time" + (count > 1 ? 's' : '') + ".",
+        "Achievement unlocked: persistent nothingness."];
+      feedback.textContent = msgs[Math.min(count - 1, msgs.length - 1)];
+      toast("Nothing happened.");
+    });
+    c.appendChild(btn);
+    c.appendChild(feedback);
+  }
+
+  function genMovingButtonSection(parent, n) {
+    const c = makeCard(parent, 'Department of Moving Slightly to the Left', 'Try to click this button.');
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'position:relative;height:60px;';
+    const btn = document.createElement('button');
+    btn.className = 'btn'; btn.textContent = 'Click Me';
+    btn.style.cssText = 'position:absolute;left:0;top:0;transition:left 0.1s,top 0.1s;';
+    let escaped = 0;
+    btn.addEventListener('mouseenter', () => {
+      escaped++;
+      const maxX = Math.max(0, wrap.offsetWidth - btn.offsetWidth - 4);
+      const newL = Math.random() * maxX;
+      btn.style.left = newL + 'px';
+    });
+    btn.addEventListener('click', () => {
+      S.buttons++; S.interactionCount++;
+      toast("You caught it! It was meaningless.");
+      beep(800, 0.1, 0.05, 'triangle');
+      btn.textContent = 'Caught! (Nothing happened)';
+      btn.disabled = true;
+    });
+    wrap.appendChild(btn);
+    c.appendChild(wrap);
+    const note = document.createElement('div');
+    note.style.cssText = 'font-size:0.72rem;color:var(--dim);margin-top:8px;';
+    note.textContent = 'Button has evaded you ' + escaped + ' time(s) and counting.';
+    btn.addEventListener('mouseenter', () => { note.textContent = `Button has evaded you ${escaped} time(s) and counting.`; });
+    c.appendChild(note);
+  }
+
+  function genCountdownSection(parent, n) {
+    const c = makeCard(parent, 'Official Countdown Unit', 'Counting down to something important.');
+    const body = document.createElement('div');
+    body.style.cssText = 'font-size:2.5rem;font-family:var(--mono);color:var(--accent2);text-align:center;padding:12px 0;';
+    c.appendChild(body);
+    const note = document.createElement('div');
+    note.style.cssText = 'font-size:0.78rem;color:var(--dim);text-align:center;';
+    note.textContent = 'Counting down to absolutely nothing.';
+    c.appendChild(note);
+    let val = 10 + Math.floor(Math.random() * 20);
+    body.textContent = val;
+    const interval = setInterval(() => {
+      val--;
+      body.textContent = val;
+      if (val <= 0) {
+        clearInterval(interval);
+        body.textContent = '—';
+        note.textContent = 'Countdown complete. Nothing occurred.';
+        toast("Countdown reached zero. Nothing happened.");
+        beep(220, 0.3, 0.05, 'sawtooth');
+      }
+    }, 1000);
+  }
+
+  function genFakeAlertSection(parent, n) {
+    const c = makeCard(parent, 'System Notification Centre', 'The system has something to tell you.');
+    const alert = document.createElement('div');
+    alert.className = 'fake-alert';
+    const alerts = [
+      { title: 'Notice', body: 'Your session is perfectly valid. No action required. We just wanted you to know.' },
+      { title: 'Update Available', body: 'Version 0.0.2 is ready. Changes: nothing. Duration: forever.' },
+      { title: 'Warning', body: 'CPU usage is 0% for your current task. This is because your task is nothing.' },
+      { title: 'Reminder', body: 'You set a reminder: no reminder was set. This is that reminder.' },
+      { title: 'Security Alert', body: 'Everything is fine. This alert was sent by mistake. Please ignore it.' },
+    ];
+    const a = alerts[Math.floor(Math.random() * alerts.length)];
+    alert.innerHTML = `<div class="fake-alert-title">${a.title}</div><div style="font-size:0.82rem;color:var(--dim);">${a.body}</div>`;
+    const dismissBtn = makeBtn('Dismiss', 'btn-small', () => {
+      alert.style.opacity = '0.3';
+      alert.style.textDecoration = 'line-through';
+      toast("Alert dismissed. It will return.");
+      setTimeout(() => {
+        alert.style.opacity = '1';
+        alert.style.textDecoration = '';
+        toast("Alert has returned.");
+      }, 4000);
+    });
+    dismissBtn.style.marginTop = '10px';
+    c.appendChild(alert);
+    c.appendChild(dismissBtn);
+  }
+
+  function genCalculatingSection(parent, n) {
+    const c = makeCard(parent, 'Certified Uselessness Calculator', null);
+    const display = document.createElement('div');
+    display.style.cssText = 'font-family:var(--mono);font-size:1.1rem;color:var(--accent2);margin:8px 0 16px;min-height:28px;';
+    display.textContent = 'Result: —';
+    c.appendChild(display);
+    const btn = makeBtn('Calculate', 'btn-primary', () => {
+      display.textContent = 'Calculating…';
+      beep(400, 0.04);
+      setTimeout(() => {
+        const results = ['Result: 0', 'Result: undefined', 'Result: ∅', 'Result: try again',
+          'Result: 42 (meaningless)', 'Error: division by nothing', 'Result: same as before'];
+        display.textContent = results[Math.floor(Math.random() * results.length)];
+        beep(600, 0.06, 0.04, 'triangle');
+        toast("Calculation complete.");
+      }, 1500 + Math.random() * 1000);
+    });
+    c.appendChild(btn);
+  }
+
+  function genSliderSection(parent, n) {
+    const c = makeCard(parent, 'Advanced Pointlessness Adjuster', 'Drag the slider to adjust the level of pointlessness.');
+    const slider = document.createElement('input');
+    slider.type = 'range'; slider.min = 0; slider.max = 100; slider.value = 50;
+    slider.style.cssText = 'width:100%;margin:12px 0;accent-color:var(--accent);';
+    const output = document.createElement('div');
+    output.style.cssText = 'font-size:0.82rem;color:var(--dim);';
+    output.textContent = 'Pointlessness: 50%. This is the baseline.';
+    const labels = {
+      0: 'Pointlessness: 0%. Still pointless.',
+      25: 'Pointlessness: 25%. Marginally less pointless, but still.',
+      50: 'Pointlessness: 50%. This is the baseline.',
+      75: 'Pointlessness: 75%. Approaching maximum.',
+      100: 'Pointlessness: 100%. Peak achieved. Nothing changes.',
+    };
+    slider.addEventListener('input', function() {
+      S.lastActivity = Date.now();
+      const v = parseInt(this.value);
+      const key = Math.round(v / 25) * 25;
+      output.textContent = labels[key] || `Pointlessness: ${v}%. That's a number.`;
+    });
+    c.appendChild(slider);
+    c.appendChild(output);
+  }
+
+  function genLevelSection(parent, n) {
+    const c = makeCard(parent, 'Progression System™', null);
+    const lvl = Math.floor(S.buttons / 5) + 1;
+    const body = document.createElement('div');
+    body.className = 'card-body';
+    body.textContent = `You are Level ${lvl}. This level grants no abilities, no benefits, and no respect.`;
+    c.appendChild(body);
+    const barWrap = document.createElement('div');
+    barWrap.className = 'level-bar-wrap';
+    const label = document.createElement('div');
+    label.className = 'level-label';
+    const xp = (S.buttons % 5) * 20;
+    label.innerHTML = `<span>Level ${lvl}</span><span>${xp}/100 XP</span>`;
+    const pw = document.createElement('div'); pw.className = 'progress-wrap';
+    const pb = document.createElement('div'); pb.className = 'progress-bar';
+    pb.style.width = xp + '%'; pw.appendChild(pb);
+    barWrap.appendChild(label); barWrap.appendChild(pw);
+    c.appendChild(barWrap);
+    const btn = makeBtn('Gain XP (0)', '', (b) => {
+      toast("You gained 0 XP.");
+      beep(550, 0.04);
+    });
+    c.appendChild(btn);
+  }
+
+  function genCertificateSection(parent, n) {
+    const c = makeCard(parent, 'Certificate of Achievement', null);
+    c.style.cssText += 'border-color:rgba(255,215,0,0.2);background:rgba(255,215,0,0.02);';
+    const cert = document.createElement('div');
+    cert.style.cssText = 'text-align:center;padding:12px 0;';
+    const date = new Date().toLocaleDateString();
+    cert.innerHTML = `
+      <div style="font-size:0.65rem;color:var(--dim);letter-spacing:0.15em;margin-bottom:8px;">THIS CERTIFIES THAT</div>
+      <div style="font-size:1.3rem;font-weight:700;color:#e0e0f0;margin-bottom:4px;">The User</div>
+      <div style="font-size:0.78rem;color:var(--dim);margin-bottom:12px;">has successfully accomplished</div>
+      <div style="font-size:1rem;color:var(--accent);font-weight:600;margin-bottom:12px;">Absolutely Nothing</div>
+      <div style="font-size:0.65rem;color:var(--dim);">Awarded ${date} • Signed: Nobody</div>`;
+    c.appendChild(cert);
+  }
+
+  function genWaitingSection(parent, n) {
+    const c = makeCard(parent, 'Advanced Waiting Simulator', 'Please wait for absolutely nothing.');
+    const spinner = document.createElement('div');
+    spinner.style.cssText = 'display:flex;align-items:center;gap:12px;margin:12px 0;';
+    spinner.innerHTML = `<span class="spinner"></span><span style="color:var(--dim);font-size:0.85rem;" id="wait-msg-${n}">Loading…</span>`;
+    c.appendChild(spinner);
+    const msgs = [
+      "Loading…", "Still loading…", "Loading indefinitely…",
+      "Almost done loading… just kidding.", "Preparing to load…",
+      "Loaded. Nothing here.", "Please continue to wait.",
+      "The wait is the content.", "Estimated time: yes.",
+    ];
+    let mi = 0;
+    const interval = setInterval(() => {
+      mi = (mi + 1) % msgs.length;
+      const el = document.getElementById('wait-msg-' + n);
+      if (el) el.textContent = msgs[mi];
+      else clearInterval(interval);
+    }, 2200);
+  }
+
+  function genMessageSection(parent, n) {
+    const messages = [
+      "You are now 3% more informed.",
+      "This could have been an email.",
+      "You have reached the end. Just kidding.",
+      "There is no reward.",
+      "Everything is proceeding exactly as expected.",
+      "Please continue scrolling. It will not help.",
+      "The next section is slightly more disappointing.",
+      "Estimated completion: never.",
+      "This website has been audited and found to be entirely pointless. Pass.",
+      "You are approximately here: [■□□□□□□□□□]",
+    ];
+    const msg = messages[n % messages.length];
+    const c = makeCard(parent, 'Important Message #' + (n * 7 + 100), msg);
+    const btn = makeBtn('Acknowledge', 'btn-small', () => {
+      toast("Acknowledged. Nothing changes.");
+      beep(440, 0.05);
+    });
+    btn.style.marginTop = '10px';
+    c.appendChild(btn);
+  }
+
+  function genMultiButtonSection(parent, n) {
+    const c = makeCard(parent, 'Button Testing Facility', 'These buttons have been exhaustively tested. They do nothing.');
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;';
+    const labels = [
+      'Submit', 'Cancel', 'OK', 'Maybe', 'Later',
+      'No', 'Yes', 'Fine', 'Whatever', 'Proceed',
+    ];
+    labels.forEach(lbl => {
+      const btn = makeBtn(lbl, 'btn-small', () => {
+        const responses = [`"${lbl}" was pressed. Nothing was submitted.`,
+          `${lbl}: action registered. Result: void.`,
+          `The ${lbl} button has spoken.`];
+        toast(responses[Math.floor(Math.random() * responses.length)]);
+        beep(300 + Math.random() * 400, 0.04);
+      });
+      wrap.appendChild(btn);
+    });
+    c.appendChild(wrap);
+  }
+
+  function genTypewriterSection(parent, n) {
+    const c = makeCard(parent, 'Live Transmission', null);
+    const display = document.createElement('div');
+    display.style.cssText = 'font-family:var(--mono);font-size:0.85rem;color:var(--accent2);min-height:80px;line-height:1.8;white-space:pre-wrap;word-break:break-word;';
+    c.appendChild(display);
+    const messages = [
+      "> SCANNING FOR PURPOSE...\n> PURPOSE NOT FOUND.\n> CONTINUING ANYWAY.\n> _",
+      "> RUNNING DIAGNOSTICS...\n> DIAGNOSTICS COMPLETE.\n> RESULT: INCONCLUSIVE.\n> _",
+      "> CONNECTING TO SERVER...\n> SERVER RESPONDED: ???\n> CONTINUING AS PLANNED.\n> _",
+      "> LOADING IMPORTANT DATA...\n> DATA LOADED.\n> DATA WAS EMPTY.\n> _",
+    ];
+    const msg = messages[n % messages.length];
+    let i = 0;
+    const interval = setInterval(() => {
+      if (i < msg.length) { display.textContent = msg.slice(0, ++i); } else clearInterval(interval);
+    }, 40);
+  }
+
+  function genFormSection(parent, n) {
+    const c = makeCard(parent, 'Official Request Form', 'Submit a formal request to do nothing.');
+    const fieldset = document.createElement('div');
+    fieldset.style.cssText = 'display:flex;flex-direction:column;gap:10px;margin:8px 0;';
+    const fields = [
+      { label: 'Your Nothing (optional)', placeholder: 'Describe your nothing here' },
+      { label: 'Reason for Nothing', placeholder: 'No reason required' },
+    ];
+    fields.forEach(f => {
+      const label = document.createElement('label');
+      label.style.cssText = 'font-size:0.78rem;color:var(--dim);';
+      label.textContent = f.label;
+      const input = document.createElement('input');
+      input.type = 'text'; input.placeholder = f.placeholder;
+      input.style.cssText = 'background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:var(--font);font-size:0.85rem;width:100%;outline:none;';
+      label.appendChild(document.createElement('br'));
+      label.appendChild(input);
+      fieldset.appendChild(label);
+    });
+    c.appendChild(fieldset);
+    const btn = makeBtn('Submit Request', 'btn-primary', () => {
+      toast("Request submitted. It will not be processed.");
+      beep(440, 0.08);
+      btn.textContent = 'Request Submitted (Ignored)';
+      btn.disabled = true;
+      setTimeout(() => { btn.disabled = false; btn.textContent = 'Submit Request'; }, 3000);
+    });
+    c.appendChild(btn);
+  }
+
+  function genAchievementSection(parent, n) {
+    const c = makeCard(parent, 'Achievement Unlocked', null);
+    const achievements = [
+      { icon: '🏅', title: 'Still Scrolling', desc: 'You scrolled to section #' + n + '. No reward exists for this.' },
+      { icon: '🎖️', title: 'Persistent', desc: 'You have demonstrated an unusual commitment to doing nothing.' },
+      { icon: '🏆', title: 'Record Holder', desc: 'Longest-ever interaction with a useless website.' },
+      { icon: '⭐', title: 'Five-Star Nothing', desc: 'Rated 5/5 on the pointlessness scale.' },
+      { icon: '🎗️', title: 'Participant', desc: 'You participated. That is the extent of it.' },
+    ];
+    const a = achievements[n % achievements.length];
+    const box = document.createElement('div');
+    box.style.cssText = 'display:flex;align-items:center;gap:16px;';
+    box.innerHTML = `<div style="font-size:2.5rem;">${a.icon}</div><div><div style="font-weight:700;color:#e0e0f0;margin-bottom:4px;">${a.title}</div><div style="font-size:0.82rem;color:var(--dim);">${a.desc}</div></div>`;
+    c.appendChild(box);
+  }
+
+  function genPhilosophySection(parent, n) {
+    const c = makeCard(parent, 'Department of Existential Inquiry', null);
+    const quotes = [
+      "If a button is clicked and nobody cares, does it make a difference?",
+      "The scroll that leads nowhere is still a scroll.",
+      "You came here for something. You found nothing. The nothing has changed you.",
+      "Every section is the last section. Every section is not the last section.",
+      "The website is infinite because you keep scrolling. You keep scrolling because the website is infinite.",
+      "Progress is relative. This progress bar is not.",
+      "What you call 'wasted time' the website calls 'being visited'.",
+      "Some say the journey is the destination. This website has neither.",
+    ];
+    const quote = document.createElement('blockquote');
+    quote.style.cssText = 'font-size:1.05rem;font-style:italic;color:#b0b0c8;border-left:3px solid var(--accent);padding-left:16px;line-height:1.6;';
+    quote.textContent = '"' + quotes[n % quotes.length] + '"';
+    c.appendChild(quote);
+    const attr = document.createElement('div');
+    attr.style.cssText = 'font-size:0.72rem;color:var(--dim);margin-top:10px;';
+    attr.textContent = '— The Website, ' + new Date().getFullYear();
+    c.appendChild(attr);
+  }
+
+  // ─── INFINITE SCROLL ─────────────────────────────────────────────────────
+  let generating = false;
+
+  function checkScroll() {
+    if (generating) return;
+    const scrollBottom = window.scrollY + window.innerHeight;
+    const docHeight = document.documentElement.scrollHeight;
+    if (scrollBottom > docHeight - 600) {
+      generating = true;
+      generateSection(false);
+      setTimeout(() => { generating = false; }, 100);
+    }
+  }
+
+  window.addEventListener('scroll', checkScroll, { passive: true });
+
+  // Pre-generate a few sections
+  for (let i = 0; i < 4; i++) generateSection(false);
+
+  // ─── MAIN LOOP ───────────────────────────────────────────────────────────
+  let lastStatUpdate = 0;
+
+  function tick() {
+    const now = Date.now();
+    if (now - lastStatUpdate > 1000) {
+      lastStatUpdate = now;
+      updateStats();
+      updateLoadTime();
+    }
+    checkIdle();
+    requestAnimationFrame(tick);
+  }
+
+  // Start everything
+  requestAnimationFrame(animateProgress);
+  requestAnimationFrame(tick);
+
+  // Occasional random toast
+  setInterval(() => {
+    if (Math.random() < 0.3) randomToast();
+  }, 12000);
+
+})();
+</script>
+</body>
+</html>
