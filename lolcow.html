@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LOLCOW.EXE - The Definitive Cow Repository</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Comic+Neue:ital,wght@0,400;0,700;1,400&family=Special+Elite&display=swap');
+
+  :root {
+    --yellow: #FFE600;
+    --green: #00FF41;
+    --pink: #FF69B4;
+    --red: #FF0000;
+    --bg: #0a0a0a;
+    --panel: #111;
+    --text: #e8e8e8;
+    --border: #333;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Comic Neue', 'Comic Sans MS', cursive;
+    font-size: 15px;
+    line-height: 1.5;
+    overflow-x: hidden;
+  }
+
+  /* MARQUEE HEADER */
+  .ticker-wrap {
+    background: var(--red);
+    color: white;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 1px;
+    overflow: hidden;
+    white-space: nowrap;
+    padding: 5px 0;
+    border-bottom: 2px solid #900;
+  }
+  .ticker-inner {
+    display: inline-block;
+    animation: scroll-left 30s linear infinite;
+  }
+  .ticker-inner span { padding: 0 40px; }
+  @keyframes scroll-left {
+    from { transform: translateX(100vw); }
+    to { transform: translateX(-100%); }
+  }
+
+  /* HEADER */
+  header {
+    background: repeating-linear-gradient(
+      45deg,
+      #111 0px, #111 10px,
+      #181818 10px, #181818 20px
+    );
+    border-bottom: 3px solid var(--yellow);
+    padding: 20px 16px 16px;
+    text-align: center;
+    position: relative;
+  }
+  .site-title {
+    font-family: 'Special Elite', monospace;
+    font-size: clamp(2.5rem, 8vw, 5.5rem);
+    color: var(--yellow);
+    text-shadow: 4px 4px 0 #000, -2px -2px 0 #8B6914;
+    letter-spacing: 4px;
+    line-height: 1;
+  }
+  .site-title .cow-emoji {
+    font-style: normal;
+    filter: drop-shadow(0 0 8px var(--yellow));
+  }
+  .tagline {
+    color: #aaa;
+    font-size: 12px;
+    margin-top: 6px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+  .visitor-count {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    background: #000;
+    border: 1px solid var(--green);
+    color: var(--green);
+    font-family: monospace;
+    font-size: 11px;
+    padding: 4px 8px;
+    border-radius: 2px;
+  }
+  .online-dot {
+    display: inline-block;
+    width: 7px; height: 7px;
+    background: var(--green);
+    border-radius: 50%;
+    margin-right: 5px;
+    animation: blink 1.2s step-start infinite;
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* NAV */
+  nav {
+    background: #161616;
+    border-bottom: 2px solid var(--border);
+    display: flex;
+    gap: 2px;
+    padding: 0 12px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  nav a {
+    color: var(--yellow);
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 10px 14px;
+    border-right: 1px solid var(--border);
+    transition: background 0.1s;
+    cursor: pointer;
+  }
+  nav a:hover { background: #222; color: var(--pink); }
+  nav .active { background: #222; color: var(--pink); border-bottom: 2px solid var(--pink); }
+  nav .spacer { flex: 1; }
+  nav .search-box {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    padding: 6px 0;
+  }
+  nav .search-box input {
+    background: #000;
+    border: 1px solid #444;
+    color: var(--text);
+    font-family: monospace;
+    font-size: 12px;
+    padding: 4px 8px;
+    width: 160px;
+  }
+  nav .search-box button {
+    background: var(--yellow);
+    border: none;
+    color: #000;
+    font-weight: 700;
+    font-size: 11px;
+    padding: 4px 10px;
+    cursor: pointer;
+  }
+
+  /* LAYOUT */
+  .main-wrap {
+    display: grid;
+    grid-template-columns: 220px 1fr 200px;
+    gap: 0;
+    max-width: 1200px;
+    margin: 0 auto;
+    min-height: calc(100vh - 200px);
+  }
+
+  /* SIDEBAR LEFT */
+  .sidebar-left {
+    border-right: 2px solid var(--border);
+    padding: 14px 12px;
+  }
+  .sidebar-widget {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    margin-bottom: 14px;
+  }
+  .widget-title {
+    background: #222;
+    border-bottom: 1px solid var(--border);
+    color: var(--yellow);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 6px 10px;
+    text-transform: uppercase;
+  }
+  .widget-body { padding: 10px; }
+  .cow-list { list-style: none; }
+  .cow-list li {
+    border-bottom: 1px solid #1a1a1a;
+    padding: 5px 0;
+    font-size: 13px;
+  }
+  .cow-list li:last-child { border-bottom: none; }
+  .cow-list a { color: #ccc; text-decoration: none; cursor: pointer; }
+  .cow-list a:hover { color: var(--pink); text-decoration: underline; }
+  .cow-list .fire { color: var(--red); font-size: 11px; margin-left: 4px; }
+  .cow-list .new { color: var(--green); font-size: 10px; font-weight: 700; margin-left: 4px; background: #002200; padding: 1px 4px; border-radius: 2px; }
+
+  .tag-cloud { display: flex; flex-wrap: wrap; gap: 5px; }
+  .tag {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    color: #999;
+    font-size: 11px;
+    padding: 2px 7px;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: 0.15s;
+  }
+  .tag:hover { background: #222; color: var(--yellow); border-color: var(--yellow); }
+
+  .poll-option {
+    margin-bottom: 8px;
+  }
+  .poll-label { font-size: 12px; margin-bottom: 3px; color: #ccc; }
+  .poll-bar-wrap { background: #1a1a1a; height: 14px; border-radius: 1px; overflow: hidden; }
+  .poll-bar { height: 100%; background: var(--yellow); opacity: 0.8; transition: width 1s ease; }
+  .poll-pct { font-size: 11px; color: #888; margin-left: 4px; }
+
+  /* MAIN CONTENT */
+  .main-content { padding: 14px 16px; border-right: 2px solid var(--border); }
+
+  /* PINNED BANNER */
+  .pinned-banner {
+    background: repeating-linear-gradient(
+      -45deg,
+      #FF000011, #FF000011 8px,
+      transparent 8px, transparent 16px
+    );
+    border: 2px solid var(--red);
+    color: var(--red);
+    font-size: 12px;
+    font-weight: 700;
+    padding: 8px 14px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .pinned-banner .pin-icon { font-size: 18px; flex-shrink: 0; }
+
+  /* THREAD */
+  .thread {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    margin-bottom: 12px;
+    transition: border-color 0.15s;
+  }
+  .thread:hover { border-color: #555; }
+  .thread-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .thread-avatar {
+    width: 42px; height: 42px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-style: normal;
+  }
+  .thread-meta { flex: 1; min-width: 0; }
+  .thread-title {
+    color: var(--text);
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .thread-title:hover { color: var(--yellow); text-decoration: underline; cursor: pointer; }
+  .thread-sub { font-size: 11px; color: #777; }
+  .thread-sub .cat { color: var(--yellow); }
+  .thread-stats {
+    display: flex;
+    gap: 14px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+  .stat-val { font-size: 16px; font-weight: 700; display: block; }
+  .stat-lbl { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-val.hot { color: var(--red); }
+  .stat-val.replies { color: #aaa; }
+  .thread-preview {
+    padding: 10px 14px;
+    font-size: 13px;
+    color: #aaa;
+    border-bottom: 1px solid #1a1a1a;
+    line-height: 1.6;
+  }
+  .thread-preview img.emoji { width: 16px; height: 16px; vertical-align: middle; }
+  .thread-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 14px;
+    font-size: 11px;
+    color: #666;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .thread-footer .flair {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+  }
+  .flair-tag {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 2px;
+    color: #888;
+    font-size: 10px;
+    padding: 1px 6px;
+    cursor: pointer;
+  }
+  .flair-tag.drama { border-color: #FF4500; color: #FF4500; background: #1a0900; }
+  .flair-tag.milk { border-color: #00aaff; color: #00aaff; background: #00111a; }
+  .flair-tag.active { border-color: var(--green); color: var(--green); background: #001400; }
+  .flair-tag.dead { border-color: #555; color: #666; }
+  .thread-footer .last-post { color: #555; }
+
+  /* ALERT BOX */
+  .alert {
+    background: #0d1a0d;
+    border: 1px solid #1a4a1a;
+    color: var(--green);
+    font-size: 12px;
+    font-family: monospace;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+  }
+
+  /* SIDEBAR RIGHT */
+  .sidebar-right {
+    padding: 14px 12px;
+    font-size: 12px;
+  }
+  .leaderboard-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 0;
+    border-bottom: 1px solid #1a1a1a;
+    font-size: 12px;
+  }
+  .leaderboard-item:last-child { border-bottom: none; }
+  .lb-rank { color: #666; width: 18px; flex-shrink: 0; font-weight: 700; }
+  .lb-rank.gold { color: #FFD700; }
+  .lb-rank.silver { color: #C0C0C0; }
+  .lb-rank.bronze { color: #CD7F32; }
+  .lb-avatar { font-size: 18px; flex-shrink: 0; }
+  .lb-name { flex: 1; color: #ccc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .lb-score { color: var(--yellow); font-weight: 700; font-size: 11px; }
+
+  .lore-entry {
+    border-bottom: 1px solid #1a1a1a;
+    padding: 6px 0;
+    font-size: 12px;
+    color: #aaa;
+  }
+  .lore-entry:last-child { border-bottom: none; }
+  .lore-entry strong { color: var(--text); }
+
+  .news-item {
+    border-bottom: 1px solid #1a1a1a;
+    padding: 6px 0;
+    font-size: 12px;
+    color: #888;
+    cursor: pointer;
+  }
+  .news-item:hover { color: var(--pink); }
+  .news-item:last-child { border-bottom: none; }
+  .news-date { color: #555; font-size: 10px; display: block; }
+
+  /* FOOTER */
+  footer {
+    background: #0d0d0d;
+    border-top: 2px solid var(--border);
+    color: #444;
+    font-size: 11px;
+    padding: 16px;
+    text-align: center;
+    font-family: monospace;
+    line-height: 2;
+  }
+  footer a { color: #666; }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: #111;
+    border: 2px solid var(--yellow);
+    max-width: 680px;
+    width: 95%;
+    max-height: 85vh;
+    overflow-y: auto;
+    position: relative;
+  }
+  .modal-header {
+    background: #1a1a1a;
+    border-bottom: 1px solid var(--border);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .modal-header .m-avatar { font-size: 36px; }
+  .modal-header h2 { font-size: 18px; color: var(--yellow); font-family: 'Special Elite', monospace; }
+  .modal-header .m-sub { color: #777; font-size: 12px; }
+  .modal-close {
+    position: absolute;
+    top: 10px; right: 14px;
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 22px;
+    cursor: pointer;
+    line-height: 1;
+  }
+  .modal-close:hover { color: var(--red); }
+  .modal-body { padding: 16px; }
+  .post {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid #1a1a1a;
+    padding-bottom: 16px;
+  }
+  .post:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .post-avatar {
+    width: 48px; height: 48px;
+    border-radius: 3px;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+    border: 1px solid #333;
+  }
+  .post-content { flex: 1; }
+  .post-author { color: var(--yellow); font-size: 13px; font-weight: 700; }
+  .post-author .badge {
+    background: var(--red);
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 5px;
+    border-radius: 2px;
+    margin-left: 5px;
+    vertical-align: middle;
+  }
+  .post-author .badge.mod { background: #008800; }
+  .post-author .badge.anon { background: #555; }
+  .post-time { color: #555; font-size: 11px; margin-left: 8px; }
+  .post-body { font-size: 13px; color: #ccc; line-height: 1.7; margin-top: 5px; }
+  .post-body .quote { color: var(--green); font-style: italic; border-left: 2px solid var(--green); padding-left: 8px; margin: 6px 0; display: block; font-size: 12px; }
+  .post-body .red-text { color: var(--red); font-weight: 700; }
+  .post-reactions { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .reaction {
+    background: #1a1a1a;
+    border: 1px solid #333;
+    border-radius: 12px;
+    color: #888;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 2px 8px;
+    transition: 0.15s;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .reaction:hover { border-color: var(--yellow); color: var(--yellow); background: #1a1700; }
+  .reaction.active { border-color: var(--pink); color: var(--pink); background: #1a001a; }
+
+  /* REPLY BOX */
+  .reply-box {
+    background: #0d0d0d;
+    border: 1px solid var(--border);
+    border-top: 2px solid var(--yellow);
+    padding: 14px;
+    margin-top: 16px;
+  }
+  .reply-box textarea {
+    background: #111;
+    border: 1px solid #333;
+    color: var(--text);
+    font-family: 'Comic Neue', cursive;
+    font-size: 13px;
+    padding: 10px;
+    resize: vertical;
+    width: 100%;
+    min-height: 80px;
+    line-height: 1.5;
+  }
+  .reply-box textarea:focus { outline: none; border-color: var(--yellow); }
+  .reply-box .reply-footer { display: flex; gap: 8px; margin-top: 8px; align-items: center; }
+  .reply-box .rules { color: #555; font-size: 11px; flex: 1; }
+  .reply-btn {
+    background: var(--yellow);
+    border: none;
+    color: #000;
+    cursor: pointer;
+    font-family: 'Special Elite', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 8px 20px;
+    transition: 0.15s;
+  }
+  .reply-btn:hover { background: #ffd000; }
+
+  .modal-tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    background: #0d0d0d;
+  }
+  .modal-tab {
+    padding: 8px 18px;
+    font-size: 12px;
+    color: #888;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    font-weight: 700;
+    transition: 0.15s;
+  }
+  .modal-tab.active { color: var(--yellow); border-bottom-color: var(--yellow); background: #111; }
+  .modal-tab:hover { color: var(--pink); }
+
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  .cow-profile-card {
+    display: flex;
+    gap: 14px;
+    padding: 14px;
+    background: #0d0d0d;
+    border: 1px solid var(--border);
+    margin-bottom: 14px;
+  }
+  .cow-profile-avatar { font-size: 64px; flex-shrink: 0; }
+  .cow-profile-info { flex: 1; }
+  .cow-profile-name { font-size: 20px; font-family: 'Special Elite', monospace; color: var(--yellow); }
+  .cow-profile-aka { color: #777; font-size: 12px; margin-bottom: 6px; }
+  .cow-stat-row { display: flex; gap: 16px; margin-top: 8px; flex-wrap: wrap; }
+  .cow-stat { font-size: 12px; }
+  .cow-stat .val { color: var(--text); font-weight: 700; font-size: 14px; display: block; }
+  .cow-stat .lbl { color: #666; font-size: 10px; text-transform: uppercase; }
+  .cow-drama-score {
+    background: var(--red);
+    color: white;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 2px;
+    display: inline-block;
+    margin-top: 8px;
+  }
+
+  .timeline-entry {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+    font-size: 12px;
+  }
+  .timeline-date { color: #555; white-space: nowrap; width: 75px; flex-shrink: 0; font-family: monospace; }
+  .timeline-event { color: #aaa; }
+  .timeline-event .drama { color: var(--red); font-weight: 700; }
+  .timeline-entry::before {
+    content: '▸';
+    color: var(--yellow);
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: #111;
+    border: 1px solid var(--green);
+    color: var(--green);
+    font-size: 13px;
+    font-family: monospace;
+    padding: 10px 18px;
+    z-index: 200;
+    transform: translateY(80px);
+    opacity: 0;
+    transition: all 0.25s ease;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  /* RESPONSIVE */
+  @media (max-width: 800px) {
+    .main-wrap { grid-template-columns: 1fr; }
+    .sidebar-left, .sidebar-right { border: none; }
+    .sidebar-right { display: none; }
+    .visitor-count { display: none; }
+  }
+  @media (max-width: 480px) {
+    .thread-stats { gap: 8px; }
+    .stat-val { font-size: 14px; }
+    .sidebar-left { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TICKER -->
+<div class="ticker-wrap">
+  <span class="ticker-inner">
+    <span>🔴 LIVE: @xXGrifterKing69Xx is currently streaming a meltdown on Twitch</span>
+    <span>🐄 New thread: Professionally Aggrieved Artist Threatens Legal Action (pt. 47)</span>
+    <span>⚠️ Reminder: Do not cowtip. Do not cowtip. Do not cowtip.</span>
+    <span>🥛 FRESH MILK: Content Creator Whose Whole Brand Was Authenticity Caught On Green Screen Farm</span>
+    <span>📌 Site rules updated. Yes, we know. Yes, you still have to read them.</span>
+    <span>🐄 DRAMA ESCALATION: The Grudge Vendetta Shipping War enters Hour 72</span>
+  </span>
+</div>
+
+<!-- HEADER -->
+<header>
+  <div class="visitor-count">
+    <span class="online-dot"></span>ANONS ONLINE: <span id="anon-count">1,247</span>
+  </div>
+  <div class="site-title"><span class="cow-emoji">🐄</span> LOLCOW.EXE <span class="cow-emoji">🐄</span></div>
+  <div class="tagline">The internet's premier repository of certified cows &amp; maximum drama</div>
+</header>
+
+<!-- NAV -->
+<nav>
+  <a class="active" onclick="showToast('You are already home, anon.')">🏠 Home</a>
+  <a onclick="showToast('Browsing /pt/ — Platinum Drama')">👑 /pt/</a>
+  <a onclick="showToast('Entering /snow/ — General Flakes')">❄️ /snow/</a>
+  <a onclick="showToast('This is the way.')">🌐 /w/ – Weeb</a>
+  <a onclick="showToast('Entering the void.')">🎮 /g/ – Gaming</a>
+  <a onclick="showToast('Lore unlocked.')">📖 Lore</a>
+  <a onclick="showToast('You\'ve been added to a list.')">🚨 Report</a>
+  <div class="spacer"></div>
+  <div class="search-box">
+    <input type="text" placeholder="Search cows…" id="search-input">
+    <button onclick="doSearch()">GO</button>
+  </div>
+</nav>
+
+<!-- MAIN LAYOUT -->
+<div class="main-wrap">
+
+  <!-- SIDEBAR LEFT -->
+  <aside class="sidebar-left">
+
+    <div class="sidebar-widget">
+      <div class="widget-title">🔥 Active Threads</div>
+      <div class="widget-body">
+        <ul class="cow-list">
+          <li><a onclick="openModal('grifter')">GrifterKing69</a><span class="fire">🔥🔥🔥</span></li>
+          <li><a onclick="openModal('artist')">Professionally Aggrieved Artist</a><span class="fire">🔥🔥</span></li>
+          <li><a onclick="showToast('That thread is cursed. Enter anyway?')">The Discourse Queen</a><span class="new">NEW</span></li>
+          <li><a onclick="showToast('Loading 847 pages of drama…')">VTuber Incident #12</a><span class="fire">🔥</span></li>
+          <li><a onclick="showToast('Loading… this might take a while.')">Homesteader Hoax Farm</a></li>
+          <li><a onclick="showToast('NDA prevents us from naming this one.')">Deleted (see archive)</a></li>
+          <li><a onclick="showToast('Redacted at the request of nobody.')">Diet Guru Meltdown '24</a><span class="fire">🔥</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="sidebar-widget">
+      <div class="widget-title">🗳️ Cow of the Month</div>
+      <div class="widget-body">
+        <div class="poll-option">
+          <div class="poll-label">GrifterKing69</div>
+          <div style="display:flex;align-items:center">
+            <div class="poll-bar-wrap" style="flex:1"><div class="poll-bar" style="width:58%"></div></div>
+            <span class="poll-pct">58%</span>
+          </div>
+        </div>
+        <div class="poll-option">
+          <div class="poll-label">The Discourse Queen</div>
+          <div style="display:flex;align-items:center">
+            <div class="poll-bar-wrap" style="flex:1"><div class="poll-bar" style="width:27%"></div></div>
+            <span class="poll-pct">27%</span>
+          </div>
+        </div>
+        <div class="poll-option">
+          <div class="poll-label">Homesteader Hoax</div>
+          <div style="display:flex;align-items:center">
+            <div class="poll-bar-wrap" style="flex:1"><div class="poll-bar" style="width:15%"></div></div>
+            <span class="poll-pct">15%</span>
+          </div>
+        </div>
+        <div style="margin-top:8px;font-size:11px;color:#555">4,219 votes · closes in 6d</div>
+      </div>
+    </div>
+
+    <div class="sidebar-widget">
+      <div class="widget-title">🏷️ Tags</div>
+      <div class="widget-body">
+        <div class="tag-cloud">
+          <span class="tag" onclick="showToast('#grifting')">grifting</span>
+          <span class="tag" onclick="showToast('#meltdown')">meltdown</span>
+          <span class="tag" onclick="showToast('#speedrun')">speedrun</span>
+          <span class="tag" onclick="showToast('#cancelled')">cancelled</span>
+          <span class="tag" onclick="showToast('#backpedal')">backpedal</span>
+          <span class="tag" onclick="showToast('#receipts')">receipts</span>
+          <span class="tag" onclick="showToast('#apology video')">apology vid</span>
+          <span class="tag" onclick="showToast('#hi cow 🐄')">hi cow</span>
+          <span class="tag" onclick="showToast('#the lore')">the lore</span>
+          <span class="tag" onclick="showToast('#tinfoil')">tinfoil</span>
+          <span class="tag" onclick="showToast('#vendetta')">vendetta</span>
+          <span class="tag" onclick="showToast('#milk')">milk</span>
+        </div>
+      </div>
+    </div>
+
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
+
+    <div class="alert">
+      ▌ REMINDER: Do not engage with cows directly. Do not harass. Do not cowtip. Lurk moar if you're new. This site is for documentation and community discussion only. Sage your non-contributions. ▌
+    </div>
+
+    <div class="pinned-banner">
+      <span class="pin-icon">📌</span>
+      <div>
+        <strong>[PINNED]</strong> Read the rules before posting. Yes, all of them. No, "I didn't know" is not a defence. Minimodding will get you permabanned faster than the cows themselves.
+      </div>
+    </div>
+
+    <!-- THREAD 1 -->
+    <div class="thread">
+      <div class="thread-header" onclick="openModal('grifter')">
+        <div class="thread-avatar" style="background:#1a0000;font-style:normal">🤡</div>
+        <div class="thread-meta">
+          <div class="thread-title">GrifterKing69 / "xXKingOfTruthXx" — Perpetual Victim, Professional Course Seller (Thread #23)</div>
+          <div class="thread-sub">Posted in <span class="cat">/pt/ Platinum Drama</span> · by <strong>milkfarmer_99</strong> · 3h ago</div>
+        </div>
+        <div class="thread-stats">
+          <div><span class="stat-val hot">🔥847</span><span class="stat-lbl">Replies</span></div>
+          <div><span class="stat-val replies">14.2K</span><span class="stat-lbl">Views</span></div>
+        </div>
+      </div>
+      <div class="thread-preview">
+        For those new to this saga: GrifterKing began as a "self-improvement guru" in 2019, selling a $497 course called <em>Alpha Ascendancy</em> which contained, famously, 14 slides recycled from a free YouTube video and one motivational quote attributed to Abraham Lincoln that Lincoln definitely did not say. Since then, the lore has expanded to include: three separate charity fundraisers with zero documentation of funds distributed, a wife reveal/unreveal arc, a Discord server described by former mods as "a cry for help with a Stripe integration," and an ongoing feud with a man he has exclusively referred to as "the Hater" for 18 months without ever naming him. The current arc involves an NFT project, a podcast called <em>No Excuses (Except These Ones)</em>, and a merch line that shipped exactly 0 orders. Updates posted as they develop.
+      </div>
+      <div class="thread-footer">
+        <div class="flair">
+          <span class="flair-tag drama">DRAMA</span>
+          <span class="flair-tag active">ACTIVE</span>
+          <span class="flair-tag milk">MILK</span>
+          <span class="flair-tag" onclick="showToast('#grifting')">grifting</span>
+          <span class="flair-tag" onclick="showToast('#meltdown')">meltdown</span>
+          <span class="flair-tag" onclick="showToast('#hi cow 🐄')">hi cow 🐄</span>
+        </div>
+        <span class="last-post">Last post: 4 min ago by anon</span>
+      </div>
+    </div>
+
+    <!-- THREAD 2 -->
+    <div class="thread">
+      <div class="thread-header" onclick="openModal('artist')">
+        <div class="thread-avatar" style="background:#0a001a;font-style:normal">🎨</div>
+        <div class="thread-meta">
+          <div class="thread-title">ProfessionallyAggrievedArtist / "DA_Grievance_Arc" — Legal Threats, Traced Art, Drama Pt. 47</div>
+          <div class="thread-sub">Posted in <span class="cat">/snow/ General Flakes</span> · by <strong>receipts_forever</strong> · 6h ago</div>
+        </div>
+        <div class="thread-stats">
+          <div><span class="stat-val hot">🔥312</span><span class="stat-lbl">Replies</span></div>
+          <div><span class="stat-val replies">5.8K</span><span class="stat-lbl">Views</span></div>
+        </div>
+      </div>
+      <div class="thread-preview">
+        The saga continues: after threatening legal action against a 14-year-old who drew fan art "in the wrong style," our cow has pivoted to a new business model — selling PDFs of "authentic art tips" while simultaneously posting a 47-tweet thread explaining why criticism is illegal. New milk: a screenshot of a DM in which she refers to her own art as "a protected cultural artefact." Archive links in OP.
+      </div>
+      <div class="thread-footer">
+        <div class="flair">
+          <span class="flair-tag drama">DRAMA</span>
+          <span class="flair-tag milk">MILK</span>
+          <span class="flair-tag" onclick="showToast('#receipts')">receipts</span>
+          <span class="flair-tag" onclick="showToast('#backpedal')">backpedal</span>
+        </div>
+        <span class="last-post">Last post: 22 min ago by anon</span>
+      </div>
+    </div>
+
+    <!-- THREAD 3 -->
+    <div class="thread">
+      <div class="thread-header" onclick="showToast('Loading 2,400 pages of lore… please wait.')">
+        <div class="thread-avatar" style="background:#001a00;font-style:normal">🌱</div>
+        <div class="thread-meta">
+          <div class="thread-title">HomesteadHoaxFarm — "Off The Grid" Influencer Who Buys Groceries at Whole Foods (Thread #8)</div>
+          <div class="thread-sub">Posted in <span class="cat">/snow/ General Flakes</span> · by <strong>grid_snitch</strong> · 1d ago</div>
+        </div>
+        <div class="thread-stats">
+          <div><span class="stat-val replies">198</span><span class="stat-lbl">Replies</span></div>
+          <div><span class="stat-val replies">3.1K</span><span class="stat-lbl">Views</span></div>
+        </div>
+      </div>
+      <div class="thread-preview">
+        Slow burn but consistent milk. The homesteader who built a brand on "living off the land" and "rejecting consumerism" was spotted at a Whole Foods in a recognisable jacket with a full cart, paying with a premium credit card. She has since claimed the footage was from 2018 (it was not), that she was buying "supplies for a neighbour" (the neighbour has not been identified), and that the entire incident is an attack on "the homesteading lifestyle." Thread #8. She's still posting.
+      </div>
+      <div class="thread-footer">
+        <div class="flair">
+          <span class="flair-tag milk">MILK</span>
+          <span class="flair-tag" onclick="showToast('#backpedal')">backpedal</span>
+          <span class="flair-tag" onclick="showToast('#receipts')">receipts</span>
+        </div>
+        <span class="last-post">Last post: 2h ago by anon</span>
+      </div>
+    </div>
+
+    <!-- THREAD 4 -->
+    <div class="thread">
+      <div class="thread-header" onclick="showToast('This thread is archived. The cow graduated.')">
+        <div class="thread-avatar" style="background:#1a1000;font-style:normal">💊</div>
+        <div class="thread-meta">
+          <div class="thread-title">[ARCHIVE] Diet Guru Meltdown — Keto Queen Who Sold Supplements She Was Allergic To (Complete)</div>
+          <div class="thread-sub">Posted in <span class="cat">/pt/ Platinum Drama</span> · by <strong>nutrition_receipts</strong> · 8 months ago</div>
+        </div>
+        <div class="thread-stats">
+          <div><span class="stat-val replies">2,041</span><span class="stat-lbl">Replies</span></div>
+          <div><span class="stat-val replies">88.4K</span><span class="stat-lbl">Views</span></div>
+        </div>
+      </div>
+      <div class="thread-preview">
+        [LOCKED — COW GRADUATED] The complete saga. Thread is archived for historical purposes. Sixteen months, 2,041 posts, one deleted brand, three apology videos, and a final disappearing act that remains unsolved. The definitive thread. New users: read before posting. 
+      </div>
+      <div class="thread-footer">
+        <div class="flair">
+          <span class="flair-tag dead">ARCHIVED</span>
+          <span class="flair-tag dead">LOCKED</span>
+          <span class="flair-tag" onclick="showToast('#the lore')">the lore</span>
+        </div>
+        <span class="last-post">Locked 3 months ago</span>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- SIDEBAR RIGHT -->
+  <aside class="sidebar-right">
+
+    <div class="sidebar-widget">
+      <div class="widget-title">🏆 Top Anons</div>
+      <div class="widget-body">
+        <div class="leaderboard-item">
+          <span class="lb-rank gold">1</span>
+          <span class="lb-avatar">🕵️</span>
+          <span class="lb-name">milkfarmer_99</span>
+          <span class="lb-score">12.4K</span>
+        </div>
+        <div class="leaderboard-item">
+          <span class="lb-rank silver">2</span>
+          <span class="lb-avatar">📋</span>
+          <span class="lb-name">receipts_forever</span>
+          <span class="lb-score">9.8K</span>
+        </div>
+        <div class="leaderboard-item">
+          <span class="lb-rank bronze">3</span>
+          <span class="lb-avatar">🔦</span>
+          <span class="lb-name">archiveanon</span>
+          <span class="lb-score">7.1K</span>
+        </div>
+        <div class="leaderboard-item">
+          <span class="lb-rank">4</span>
+          <span class="lb-avatar">👁️</span>
+          <span class="lb-name">grid_snitch</span>
+          <span class="lb-score">4.2K</span>
+        </div>
+        <div class="leaderboard-item">
+          <span class="lb-rank">5</span>
+          <span class="lb-avatar">📸</span>
+          <span class="lb-name">screencap_god</span>
+          <span class="lb-score">3.9K</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-widget">
+      <div class="widget-title">📖 Site Lore</div>
+      <div class="widget-body">
+        <div class="lore-entry"><strong>Cowtipping</strong> — Alerting a cow to their thread. Permaban offence.</div>
+        <div class="lore-entry"><strong>Graduated</strong> — Cow left the internet. Thread locked.</div>
+        <div class="lore-entry"><strong>Milk</strong> — Fresh drama. Screenshots preferred.</div>
+        <div class="lore-entry"><strong>Sage</strong> — Post without bumping thread.</div>
+        <div class="lore-entry"><strong>Tinfoil</strong> — Unverified speculation. Label it.</div>
+        <div class="lore-entry"><strong>Hi Cow 🐄</strong> — Greeting for cows posting in their own thread.</div>
+      </div>
+    </div>
+
+    <div class="sidebar-widget">
+      <div class="widget-title">📡 Recent Activity</div>
+      <div class="widget-body">
+        <div class="news-item" onclick="showToast('Navigating to that thread…')">
+          <span class="news-date">just now</span>
+          New screenshots in GrifterKing #23
+        </div>
+        <div class="news-item" onclick="showToast('Opening archive…')">
+          <span class="news-date">4 min ago</span>
+          archiveanon archived pages 1–200 of Art Cow
+        </div>
+        <div class="news-item" onclick="showToast('Entering discourse zone…')">
+          <span class="news-date">18 min ago</span>
+          New thread: Discord Mod Power Trip
+        </div>
+        <div class="news-item" onclick="showToast('This one escalated quickly.')">
+          <span class="news-date">1h ago</span>
+          Homestead thread: WF receipt verified by anon
+        </div>
+        <div class="news-item" onclick="showToast('Vintage milk.')">
+          <span class="news-date">3h ago</span>
+          screencap_god posted 2019 stream archive
+        </div>
+      </div>
+    </div>
+
+  </aside>
+
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div>🐄 LOLCOW.EXE — For archival and community discussion purposes only 🐄</div>
+  <div>Do not harass. Do not cowtip. Do not mini-mod. Sage your non-contributions.</div>
+  <div style="margin-top:4px;">
+    <a href="#" onclick="showToast('Rules opened.')">Rules</a> ·
+    <a href="#" onclick="showToast('You have been warned.')">FAQ</a> ·
+    <a href="#" onclick="showToast('Archive is forever.')">Archive</a> ·
+    <a href="#" onclick="showToast('Good luck.')">Contact</a> ·
+    <a href="#" onclick="showToast('Interesting choice.')">Apply to Mod</a>
+  </div>
+  <div style="margin-top:6px;color:#333">v2.4.1 · Running since forever · Uptime: longer than your attention span</div>
+</footer>
+
+<!-- MODAL: GrifterKing -->
+<div class="modal-overlay" id="modal-grifter" onclick="closeModalOutside(event, 'grifter')">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('grifter')">✕</button>
+    <div class="modal-header">
+      <span class="m-avatar">🤡</span>
+      <div>
+        <h2>GrifterKing69</h2>
+        <div class="m-sub">aka "xXKingOfTruthXx" · /pt/ Platinum Drama · Thread #23</div>
+      </div>
+    </div>
+    <div class="modal-tabs">
+      <div class="modal-tab active" onclick="switchTab('grifter','profile')">Profile</div>
+      <div class="modal-tab" onclick="switchTab('grifter','timeline')">Timeline</div>
+      <div class="modal-tab" onclick="switchTab('grifter','thread')">Thread (847)</div>
+    </div>
+    <div class="modal-body">
+
+      <div class="tab-panel active" id="tab-grifter-profile">
+        <div class="cow-profile-card">
+          <div class="cow-profile-avatar">🤡</div>
+          <div class="cow-profile-info">
+            <div class="cow-profile-name">GrifterKing69</div>
+            <div class="cow-profile-aka">aka: xXKingOfTruthXx, AlphaAscendancy_Real, TruthKingActual (banned)</div>
+            <div class="cow-stat-row">
+              <div class="cow-stat"><span class="val">23</span><span class="lbl">Threads</span></div>
+              <div class="cow-stat"><span class="val">2019</span><span class="lbl">First Sighting</span></div>
+              <div class="cow-stat"><span class="val">$497</span><span class="lbl">Course Price</span></div>
+              <div class="cow-stat"><span class="val">14</span><span class="lbl">Slides in Course</span></div>
+            </div>
+            <div class="cow-drama-score">🔥 DRAMA SCORE: 9.4 / 10</div>
+          </div>
+        </div>
+        <p style="font-size:13px;color:#aaa;line-height:1.7">Originally a fitness motivator, GrifterKing pivoted to "mindset coaching" after being banned from three fitness subreddits for selling supplements that were, charitably, talcum powder. The <em>Alpha Ascendancy</em> course became a landmark moment in online grifting documentation: buyers discovered the 14 slides were screenshots of a free Tim Ferriss video with the logo cropped out. The subsequent meltdown — a 6-hour Twitch stream — is considered classic archived content. Current status: still posting, still selling, new course called <em>SIGMA FRAMEWORK PRO</em> priced at $997.</p>
+      </div>
+
+      <div class="tab-panel" id="tab-grifter-timeline">
+        <div class="timeline-entry">
+          <span class="timeline-date">Jan 2019</span>
+          <span class="timeline-event">First appearance. Fitness Twitter. 400 followers. Vibes: harmless.</span>
+        </div>
+        <div class="timeline-entry">
+          <span class="timeline-date">Aug 2019</span>
+          <span class="timeline-event">Launches <em>Alpha Ascendancy</em> for $497. Claims it will "rewire your neural pathways."</span>
+        </div>
+        <div class="timeline-entry">
+          <span class="timeline-date">Oct 2019</span>
+          <span class="timeline-event"><span class="drama">DRAMA</span> Buyers discover 14-slide course is Tim Ferriss screenshots. Refund thread goes viral.</span>
+        </div>
+        <div class="timeline-entry">
+          <span class="timeline-date">Oct 2019</span>
+          <span class="timeline-event">6-hour Twitch meltdown. "I am the product." Classic archived moment.</span>
+        </div>
+        <div class="timeline-entry">
+          <span class="timeline-date">Mar 2020</span>
+          <span class="timeline-event">Disappears. Returns with new username. Nobody is fooled.</span>
+        </div>
+        <div class="timeline-entry">
+          <span class="timeline-date">2021–22</span>
+          <span class="timeline-event">Three charity fundraisers. Zero documentation. Total raised: ~$14,000. Whereabouts of funds: unknown.</span>
+        </div>
+        <div class="timeline-entry">
+          <span class="timeline-date">Jun 2023</span>
+          <span class="timeline-event"><span class="drama">DRAMA</span> Wife reveal arc. Unreveal arc. Discord server collapse. Mod team publishes exposé.</span>
+        </div>
+        <div class="timeline-entry">
+          <span class="timeline-date">2024</span>
+          <span class="timeline-event">NFT project. <em>No Excuses</em> podcast. Merch line. 0 orders shipped.</span>
+        </div>
+        <div class="timeline-entry">
+          <span class="timeline-date">Now</span>
+          <span class="timeline-event"><span class="drama">LIVE</span> Currently streaming. Still posting. <em>SIGMA FRAMEWORK PRO</em> is $997. The cycle continues.</span>
+        </div>
+      </div>
+
+      <div class="tab-panel" id="tab-grifter-thread">
+        <div class="post">
+          <div class="post-avatar" style="background:#111">🕵️</div>
+          <div class="post-content">
+            <span class="post-author">milkfarmer_99 <span class="badge mod">OP</span><span class="post-time">#1 · 3h ago</span></span>
+            <div class="post-body">Alright anons, he's live again. I'm not going to recap 22 threads. If you're new, read the OP and the wiki. Current situation: he just announced <em>SIGMA FRAMEWORK PRO</em> at $997. The "pro" content, based on what's leaked in the preview, appears to be the original 14 slides with WordArt added. I am not joking. Screenshots incoming.<br><br><span class="quote">&gt; "The haters want you to think this is the same course. It's not. This has been completely rebuilt from the ground up with next-level sigma methodology."</span><br>It is the same course.</div>
+            <div class="post-reactions">
+              <span class="reaction active" onclick="toggleReaction(this)">😂 <span>412</span></span>
+              <span class="reaction" onclick="toggleReaction(this)">🙏 <span>89</span></span>
+              <span class="reaction" onclick="toggleReaction(this)">💀 <span>234</span></span>
+              <span class="reaction" onclick="toggleReaction(this)">🐄 <span>188</span></span>
+            </div>
+          </div>
+        </div>
+        <div class="post">
+          <div class="post-avatar" style="background:#0a000d">👁️</div>
+          <div class="post-content">
+            <span class="post-author">archiveanon <span class="badge anon">ANON</span><span class="post-time">#2 · 2h ago</span></span>
+            <div class="post-body">Archived the stream VOD before he inevitably deletes it. He spent 20 minutes explaining why the original course was "actually good" and the refunders "lacked the sigma mindset to absorb it properly." He is, genuinely, claiming that not understanding his course is a personal failing of the buyer. <span class="red-text">I cannot stress enough how much I mean it when I say this is the same 14 slides.</span></div>
+            <div class="post-reactions">
+              <span class="reaction" onclick="toggleReaction(this)">😂 <span>301</span></span>
+              <span class="reaction" onclick="toggleReaction(this)">💀 <span>189</span></span>
+              <span class="reaction" onclick="toggleReaction(this)">🐄 <span>97</span></span>
+            </div>
+          </div>
+        </div>
+        <div class="post">
+          <div class="post-avatar" style="background:#001a00">📋</div>
+          <div class="post-content">
+            <span class="post-author">receipts_forever <span class="badge anon">ANON</span><span class="post-time">#3 · 1h ago</span></span>
+            <div class="post-body">Hi cow 🐄<br><br>He's in this thread. Someone just posted a DM from him asking who runs this site. Reminder to everyone: do not respond. Do not screenshot and send it to him. Do not cowtip. Let him marinate.<br><br><span class="quote">&gt; anon asking why we care this much</span><br>Because it is funny and he is a documented fraud, anon. That's why.</div>
+            <div class="post-reactions">
+              <span class="reaction" onclick="toggleReaction(this)">🐄 <span>521</span></span>
+              <span class="reaction" onclick="toggleReaction(this)">😂 <span>389</span></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="reply-box">
+          <textarea placeholder="Reply (sage if no new milk. No cowtipping. No cowtipping. No cowtipping.)"></textarea>
+          <div class="reply-footer">
+            <span class="rules">Posting as: Anonymous · No account required · Read the rules</span>
+            <button class="reply-btn" onclick="showToast('Post submitted. Welcome to the farm, anon. 🐄')">POST REPLY</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: Artist -->
+<div class="modal-overlay" id="modal-artist" onclick="closeModalOutside(event, 'artist')">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('artist')">✕</button>
+    <div class="modal-header">
+      <span class="m-avatar">🎨</span>
+      <div>
+        <h2>ProfessionallyAggrievedArtist</h2>
+        <div class="m-sub">aka "DA_Grievance_Arc" · /snow/ General Flakes · Thread #47</div>
+      </div>
+    </div>
+    <div class="modal-tabs">
+      <div class="modal-tab active" onclick="switchTab('artist','profile')">Profile</div>
+      <div class="modal-tab" onclick="switchTab('artist','thread')">Thread (312)</div>
+    </div>
+    <div class="modal-body">
+
+      <div class="tab-panel active" id="tab-artist-profile">
+        <div class="cow-profile-card">
+          <div class="cow-profile-avatar">🎨</div>
+          <div class="cow-profile-info">
+            <div class="cow-profile-name">ProfessionallyAggrievedArtist</div>
+            <div class="cow-profile-aka">aka: DA_Grievance, ArtistRightsNow, DeviantDramaQueen</div>
+            <div class="cow-stat-row">
+              <div class="cow-stat"><span class="val">47</span><span class="lbl">Threads</span></div>
+              <div class="cow-stat"><span class="val">3</span><span class="lbl">DMCA Attempts</span></div>
+              <div class="cow-stat"><span class="val">$12</span><span class="lbl">PDF Price</span></div>
+            </div>
+            <div class="cow-drama-score">🎭 DRAMA SCORE: 7.8 / 10</div>
+          </div>
+        </div>
+        <p style="font-size:13px;color:#aaa;line-height:1.7">A slow burn but deeply consistent milk producer. The artist in question is best known for: threatening legal action against fan artists, claiming her style is a "protected cultural artefact," selling a $12 PDF of art tips that was traced from a tutorial she did not credit, and a 47-tweet thread explaining why constructive criticism constitutes harassment. She has filed three DMCA requests against this site's archive. All three were unsuccessful. Thread #47.</p>
+      </div>
+
+      <div class="tab-panel" id="tab-artist-thread">
+        <div class="post">
+          <div class="post-avatar" style="background:#111">📋</div>
+          <div class="post-content">
+            <span class="post-author">receipts_forever <span class="badge mod">OP</span><span class="post-time">#1 · 6h ago</span></span>
+            <div class="post-body">New milk: she called her own art "a protected cultural artefact" in a DM to a 14-year-old who drew fan art. The 14-year-old drew it in a slightly different style. I have the screenshots. She is currently drafting a cease and desist. I am not joking. This is thread number forty seven.<br><br><span class="quote">&gt; anons asking how this is still going<br>&gt; she is still posting. that's how.</span></div>
+            <div class="post-reactions">
+              <span class="reaction" onclick="toggleReaction(this)">💀 <span>278</span></span>
+              <span class="reaction" onclick="toggleReaction(this)">😂 <span>201</span></span>
+              <span class="reaction active" onclick="toggleReaction(this)">🐄 <span>144</span></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="reply-box">
+          <textarea placeholder="Sage if no milk. Do not engage the cow directly."></textarea>
+          <div class="reply-footer">
+            <span class="rules">Posting as: Anonymous</span>
+            <button class="reply-btn" onclick="showToast('Post submitted. 🐄')">POST REPLY</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+  // Anon counter drift
+  let anonCount = 1247;
+  setInterval(() => {
+    anonCount += Math.floor(Math.random() * 5) - 2;
+    anonCount = Math.max(900, anonCount);
+    document.getElementById('anon-count').textContent = anonCount.toLocaleString();
+  }, 4000);
+
+  // Toast
+  let toastTimer;
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+  }
+
+  // Modals
+  function openModal(id) {
+    document.getElementById('modal-' + id).classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeModal(id) {
+    document.getElementById('modal-' + id).classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  function closeModalOutside(e, id) {
+    if (e.target === document.getElementById('modal-' + id)) closeModal(id);
+  }
+
+  // Tabs
+  function switchTab(cow, tab) {
+    const modal = document.getElementById('modal-' + cow);
+    modal.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    modal.querySelectorAll('.modal-tab').forEach(t => t.classList.remove('active'));
+    modal.querySelector('#tab-' + cow + '-' + tab).classList.add('active');
+    event.target.classList.add('active');
+  }
+
+  // Reactions
+  function toggleReaction(el) {
+    const isActive = el.classList.toggle('active');
+    const countEl = el.querySelector('span');
+    let n = parseInt(countEl.textContent);
+    countEl.textContent = isActive ? n + 1 : n - 1;
+  }
+
+  // Search
+  function doSearch() {
+    const q = document.getElementById('search-input').value.trim();
+    if (!q) { showToast('Search for what, anon?'); return; }
+    showToast('Searching for "' + q + '"… 🔍 (hi cow if that's you)');
+  }
+  document.getElementById('search-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doSearch();
+  });
+</script>
+
+</body>
+</html>
